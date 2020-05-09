@@ -30,6 +30,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.javalin.Javalin;
 import io.javalin.apibuilder.ApiBuilder;
+import io.javalin.http.staticfiles.Location;
 import net.reallifegames.localauth.api.v1.ApiController;
 import net.reallifegames.localauth.api.v1.adminStatus.AdminStatusController;
 import net.reallifegames.localauth.api.v1.createUser.CreateUserController;
@@ -136,16 +137,20 @@ public class LocalAuth {
 		LocalAuth.JDBC_URL = args[2];
 		LocalAuth.DOMAIN = args[3];
 		LocalAuth.objectMapper.enable(SerializationFeature.WRAP_ROOT_VALUE);
-		LocalAuth.loadIndexPage();
+		//LocalAuth.loadIndexPage();
 		LocalAuth.loadConnectionPool();
 		// Create users table
 		LocalAuth.createTables();
 		// Check for first time app launch
 		LocalAuth.firstTimeLaunch();
+
 		// Set spark port
-		final Javalin javalinApp = Javalin.create();
-		// Static files for front end
-		javalinApp.config.addStaticFiles("/public");
+		final Javalin javalinApp = Javalin.create(config -> {
+				config.addSinglePageRoot("/public", "/index.html");
+				config.addStaticFiles("/public");
+			}
+		);
+
 		// CORS information
 		javalinApp.before("*/*", (context)->{
 			context.header("Access-Control-Allow-Origin", "*");
@@ -182,9 +187,11 @@ public class LocalAuth {
 			ApiBuilder.before("/dash", ApiController::beforeApiAuthentication);
 			ApiBuilder.get("/dash", DashController::getEndpoints);
 		}));
+
 		// Spark path for all front end pages
-		javalinApp.get(LocalAuth.PROXY_PATH + "/*", IndexViewController::getIndexPage);
-		javalinApp.start(Integer.parseInt(args[0]));
+		//javalinApp.get(LocalAuth.PROXY_PATH + "/*", IndexViewController::getIndexPage);
+
+		javalinApp.start(8080);
 	}
 
 	private static void loadConnectionPool() {
@@ -239,16 +246,16 @@ public class LocalAuth {
 	/**
 	 * Loads the index page as a static string.
 	 */
-	private static void loadIndexPage() {
-		try {
-			// Get file uri
-			URI uri = LocalAuth.class.getResource("/private/index.html").toURI();
-			// Load index page
-			INDEX_PAGE = new String(Files.readAllBytes(Paths.get(uri)), Charset.defaultCharset());
-		} catch (IOException | URISyntaxException e) {
-			LocalAuth.LOGGER.debug("Error loading index page", e);
-		}
-	}
+	//private static void loadIndexPage() {
+	//	try {
+	//		// Get file uri
+	//		URI uri = LocalAuth.class.getResource("/private/index.html").toURI();
+	//		// Load index page
+	//		INDEX_PAGE = new String(Files.readAllBytes(Paths.get(uri)), Charset.defaultCharset());
+	//	} catch (IOException | URISyntaxException e) {
+	//		LocalAuth.LOGGER.debug("Error loading index page", e);
+	//	}
+	//}
 
 	/**
 	 * @return the sql connection pool.
