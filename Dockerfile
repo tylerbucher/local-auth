@@ -1,43 +1,26 @@
 FROM openjdk:8u171-jdk-alpine AS build
 
-WORKDIR /tmp
+COPY . /
 
-ARG SSH_FILE
+RUN set -ex; \
+    chmod +x ./gradlew ; \
+    ./gradlew -q build ; \
+    mv build/libs/LocalAuth.jar / ;
 
-ARG HOST
+FROM node:13-alpine AS client
 
-RUN apk update && \
-    apk upgrade && \
-    apk add --no-cache \
-    openssh-client \
-    git \
-    ca-certificates \
-    && mkdir lib
+COPY src/main/resources/ui .
 
-COPY ${SSH_FILE} /
-
-RUN mkdir /root/.ssh/
-RUN cp /ssh.txt /root/.ssh/id_rsa \
-    && chmod 0600 /root/.ssh/id_rsa
-
-RUN touch /root/.ssh/known_hosts \
-    && ssh-keyscan github.com >> /root/.ssh/known_hosts
-
-RUN git clone git@github.com:agent6262/LocalAuth.git \
-    && cd LocalAuth \
-    && sed -i ${HOST} src/main/resources/public/401.html \
-    && chmod +x ./gradlew \
-    && ./gradlew -q build \
-    && cd build/libs \
-    && cp LocalAuth.jar /tmp/lib \
-    && cd /tmp
+RUN set -ex; \
+    npm install ; \
+    npm run build ; \
+    mv build/ /client
 
 FROM openjdk:8u171-jre-alpine
 
-COPY --from=build /tmp/lib /opt/localauth
+COPY --from=build LocalAuth.jar /opt/localauth/
+COPY --from=client /client /opt/localauth/public
 
 WORKDIR /opt/localauth
 
-EXPOSE 8080
-
-ENTRYPOINT ["java", "-jar", "/opt/localauth/LocalAuth.jar", "8080"]
+ENTRYPOINT ["java", "-jar", "/opt/localauth/LocalAuth.jar"]
