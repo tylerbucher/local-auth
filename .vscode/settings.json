@@ -1,0 +1,7 @@
+{
+    "files.exclude": {
+        "**/.gradle": true,
+        "**/bin": true,
+        "**/node_modules": true
+    }
+}
