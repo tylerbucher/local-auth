@@ -43,7 +43,7 @@ public class UserControllerTest {
 	@Test
 	public void GET_getUser_401_Unauthorized() {
 		final Context ctx = Mockito.mock(Context.class);
-		Mockito.when(ctx.pathParam(":username")).thenReturn("");
+		Mockito.when(ctx.pathParam(":username")).thenReturn("errortest");
 		Mockito.when(ctx.cookie("authToken")).thenReturn("");
 		try {
 			UserController.getUser(ctx);

@@ -41,17 +41,11 @@ import net.reallifegames.localauth.api.v1.login.LoginController;
 import net.reallifegames.localauth.api.v1.tokenValidity.TokenValidityController;
 import net.reallifegames.localauth.api.v1.user.UserController;
 import net.reallifegames.localauth.api.v1.users.UsersController;
-import net.reallifegames.localauth.index.IndexViewController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -111,7 +105,7 @@ public class LocalAuth {
 	/**
 	 * Puts the application into testing mode. This mode will generally bypass all database calls.
 	 */
-	private static boolean debugMode = false;
+	private static volatile boolean debugMode = false;
 
 	/**
 	 * The sql query for creating a users table.
@@ -145,11 +139,10 @@ public class LocalAuth {
 		LocalAuth.firstTimeLaunch();
 
 		// Set spark port
-		final Javalin javalinApp = Javalin.create(config -> {
-				config.addSinglePageRoot("/public", "/index.html");
-				config.addStaticFiles("/public");
-			}
-		);
+		final Javalin javalinApp = Javalin.create(config->{
+			//config.addSinglePageRoot(System.getProperty("user.dir") + "/public", System.getProperty("user.dir") + "/public/" + "index.html", Location.EXTERNAL);
+			config.addStaticFiles(System.getProperty("user.dir") + "/public", Location.EXTERNAL);
+		});
 
 		// CORS information
 		javalinApp.before("*/*", (context)->{

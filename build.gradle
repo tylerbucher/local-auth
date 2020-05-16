@@ -3,6 +3,7 @@ plugins {
     id 'application'
     id "com.github.hierynomus.license" version "0.14.0"
     id 'com.github.johnrengelman.shadow' version '2.0.2'
+    id "com.github.node-gradle.node" version "2.2.3"
 }
 
 group 'net.reallifegames.local'
@@ -17,6 +18,10 @@ repositories {
 
 configurations {
     compile.extendsFrom shadow
+}
+
+sourceSets {
+    javascript
 }
 
 jar {
@@ -63,4 +68,23 @@ shadowJar {
     configurations = [project.configurations.shadow]
 }
 
+task npmCustomInstall(type: NpmTask) {
+    workingDir = file('./src/javascript/resources/ui')
+    args = ['install']
+}
+
+task npmCustomBuild(type: NpmTask) {
+    workingDir = file('./src/javascript/resources/ui')
+    args = ['run', 'build']
+}
+
+task copyReact(type: Copy) {
+    from 'src/javascript/resources/ui/build'
+    into 'build/libs/public'
+}
+
+npmCustomBuild.dependsOn.add("npmCustomInstall")
+copyReact.dependsOn.add("npmCustomBuild")
+
 build.dependsOn.add("shadowJar")
+build.dependsOn.add("copyReact")
