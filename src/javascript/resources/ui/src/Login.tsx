@@ -4,8 +4,6 @@ import axios from "axios";
 // @ts-ignore
 import { Button, Dialog } from "metro4-react";
 
-import "./styles/global.less";
-
 type LoginProps = {
     // using `interface` is also ok
 };
@@ -86,7 +84,7 @@ class Login extends React.Component<LoginProps, LoginState> {
                 <form className="bg-white p-4" onSubmit={(e) => this.handleSubmit(e)}>
                     <img
                         className="place-right"
-                        src="/rlg_favicon.png"
+                        src="/assets/images/rlg_favicon.png"
                         width="100px"
                         height="100px"
                     />

@@ -1,7 +1,8 @@
 import React from "react";
 
-import "./styles/global.less";
 import Login from "./Login";
+
+import "./styles/global.less";
 
 function App() {
     return <div className="app"><Login/></div>;

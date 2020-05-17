@@ -1,6 +1,11 @@
-const { override, babelInclude } = require("customize-cra");
+const { override, addLessLoader, babelInclude } = require("customize-cra");
 const path = require("path");
 
 module.exports = override(
+    addLessLoader({
+        lessOptions: {
+            javascriptEnabled: true,
+        },
+    }),
     babelInclude([path.resolve("src"), path.resolve("node_modules/metro4-react")])
 );
