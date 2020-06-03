@@ -24,7 +24,7 @@
 package net.reallifegames.localauth.api.v1.createUser;
 
 import io.javalin.http.Context;
-import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.*;
 import net.reallifegames.localauth.api.v1.ApiController;
 
 import javax.annotation.Nonnull;
@@ -37,44 +37,61 @@ import java.io.IOException;
  */
 public class CreateUserController {
 
-	/**
-	 * Default create user success response.
-	 */
-	private static final CreateUserResponse successResponse = new CreateUserResponse(ApiController.apiResponse, "success");
+    /**
+     * Default create user success response.
+     */
+    private static final CreateUserResponse successResponse = new CreateUserResponse(ApiController.apiResponse, "success");
 
-	/**
-	 * Default create user error response.
-	 */
-	private static final CreateUserResponse errorResponse = new CreateUserResponse(ApiController.apiResponse, "error");
+    /**
+     * Default create user error response.
+     */
+    private static final CreateUserResponse errorResponse = new CreateUserResponse(ApiController.apiResponse, "error");
 
-	/**
-	 * Attempts to create a new user from teh post data.
-	 */
-	public static void postNewUser(@Nonnull final Context context) throws IOException {
-		// Set the response type
-		final CreateUserRequest userRequest;
-		try {
-			userRequest = LocalAuth.objectMapper.readValue(context.body(), CreateUserRequest.class);
-		} catch (IOException e) {
-			ApiController.LOGGER.debug("Api login controller request marshall error", e);
-			context.status(400);
-			context.result("Bad Request");
-			return;
-		}
-		final String rawCookie = context.cookie("authToken");
-		final String authUsername = ApiController.getJWSUsernameClaim(rawCookie == null ? "" : rawCookie);
-		if (!userRequest.isDataValid() || !CreateUserRequest.isUserAuthenticated(authUsername)) {
-			context.status(401);
-			context.result("Unauthorized");
-			return;
-		}
-		final CreateUserResponse userResponse = userRequest.userExists() ? errorResponse : successResponse;
-		if (userResponse.equals(successResponse)) {
-			context.status(userRequest.createUser() ? 200 : 500);
-		} else {
-			context.status(409);
-		}
-		// Write json result
-		ApiController.jsonContextResponse(userResponse, context);
-	}
+    /**
+     * Attempts to create a new user from the post data.
+     *
+     * @param context the REST request context to modify.
+     */
+    public static void postNewUser(@Nonnull final Context context) throws IOException {
+        postNewUser(context, SecurityDbModule.getInstance(), SqlModule.getInstance());
+    }
+
+    /**
+     * Attempts to create a new user from the post data.
+     *
+     * @param context        the REST request context to modify.
+     * @param securityModule the module instance to use.
+     * @param dbModule       the module instance to use.
+     * @throws IOException if the object could not be marshaled.
+     */
+    public static void postNewUser(@Nonnull final Context context,
+                                   @Nonnull final SecurityModule securityModule,
+                                   @Nonnull final DbModule dbModule) throws IOException {
+        // Set the response type
+        final CreateUserRequest userRequest;
+        try {
+            userRequest = LocalAuth.objectMapper.readValue(context.body(), CreateUserRequest.class);
+        } catch (IOException e) {
+            ApiController.LOGGER.debug("Api login controller request marshall error", e);
+            context.status(400);
+            context.result("Bad Request");
+            return;
+        }
+        if (!ApiController.isUserAdmin(context, securityModule)) {
+            return;
+        }
+        if (!userRequest.isDataValid()) {
+            context.status(406);
+            context.result("Not Acceptable");
+            return;
+        }
+        final CreateUserResponse userResponse = userRequest.userExists(dbModule) ? errorResponse : successResponse;
+        if (userResponse.equals(successResponse)) {
+            context.status(userRequest.createUser(dbModule) ? 200 : 500);
+        } else {
+            context.status(409);
+        }
+        // Write json result
+        ApiController.jsonContextResponse(userResponse, context);
+    }
 }

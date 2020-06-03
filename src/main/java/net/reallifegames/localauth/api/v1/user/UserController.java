@@ -23,15 +23,15 @@
  */
 package net.reallifegames.localauth.api.v1.user;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import io.javalin.http.Context;
-import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.DbModule;
+import net.reallifegames.localauth.SecurityDbModule;
+import net.reallifegames.localauth.SecurityModule;
+import net.reallifegames.localauth.SqlModule;
 import net.reallifegames.localauth.api.v1.ApiController;
-import net.reallifegames.localauth.api.v1.createUser.CreateUserRequest;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.io.StringWriter;
 
 /**
  * Base users api controller, which dispatches information about users in this application. This is a secure api
@@ -41,30 +41,40 @@ import java.io.StringWriter;
  */
 public class UserController {
 
-	/**
-	 * Returns all users the the client.
-	 */
-	@SuppressWarnings ("Duplicates")
-	public static void getUser(@Nonnull final Context context) throws IOException {
-		// Set response type and status code
-		final UserRequest userRequest = new UserRequest(context.pathParam(":username"));
-		// Check if user is an admin
-		final String rawCookie = context.cookie("authToken");
-		final String authUsername = ApiController.getJWSUsernameClaim(rawCookie == null ? "" : rawCookie);
-		if (!CreateUserRequest.isUserAuthenticated(authUsername)) {
-			context.status(401);
-			context.result("Unauthorized");
-			return;
-		}
-		final UserResponse userResponse = userRequest.getUserResponse();
-		if (userResponse == null) {
-			ApiController.LOGGER.debug("Api user controller db error");
-			context.status(500);
-			context.result("Internal Server Error");
-			return;
-		}
-		context.status(200);
-		// Set response payload
-		ApiController.jsonContextResponse(userResponse, context);
-	}
+    /**
+     * Returns a specific user to the client.
+     *
+     * @param context the REST request context to modify.
+     * @throws IOException if the object could not be marshaled.
+     */
+    public static void getUser(@Nonnull final Context context) throws IOException {
+        getUser(context, SecurityDbModule.getInstance(), SqlModule.getInstance());
+    }
+
+    /**
+     * Returns a specific user to the client.
+     *
+     * @param context        the REST request context to modify.
+     * @param securityModule the module instance to use.
+     * @param dbModule       the module instance to use.
+     * @throws IOException if the object could not be marshaled.
+     */
+    public static void getUser(@Nonnull final Context context, @Nonnull final SecurityModule securityModule, @Nonnull DbModule dbModule) throws IOException {
+        // Set response type and status code
+        final UserRequest userRequest = new UserRequest(context.pathParam(":username"));
+        // Check if user is an admin
+        if (!ApiController.isUserAdmin(context, securityModule)) {
+            return;
+        }
+        final UserResponse userResponse = userRequest.getUserResponse(dbModule);
+        if (userResponse == null) {
+            ApiController.LOGGER.debug("Api user controller db error");
+            context.status(500);
+            context.result("Internal Server Error");
+            return;
+        }
+        context.status(200);
+        // Set response payload
+        ApiController.jsonContextResponse(userResponse, context);
+    }
 }

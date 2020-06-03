@@ -24,28 +24,25 @@
 package net.reallifegames.localauth.api.v1.dash;
 
 import io.javalin.http.Context;
-import net.reallifegames.localauth.LocalAuth;
-import org.junit.BeforeClass;
+import net.reallifegames.localauth.DbModule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class DashControllerTest {
 
-	@BeforeClass
-	public static void setUp() {
-		LocalAuth.setDebugMode(true);
-	}
-
-	@Test
-	public void GET_getEndpoints_200_Success() {
-		final Context ctx = Mockito.mock(Context.class);
-		try {
-			DashController.getEndpoints(ctx);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		Mockito.verify(ctx).status(200);
-	}
+    @Test
+    public void GET_getEndpoints_200_Success() {
+        final Context ctx = Mockito.mock(Context.class);
+        final DbModule dbModule = Mockito.mock(DbModule.class);
+        Mockito.when(dbModule.getDashItems()).thenReturn(new ArrayList<>());
+        try {
+            DashController.getEndpoints(ctx, dbModule);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Mockito.verify(ctx).status(200);
+    }
 }

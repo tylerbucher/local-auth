@@ -25,15 +25,9 @@ package net.reallifegames.localauth.api.v1.createUser;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import net.reallifegames.localauth.LocalAuth;
-import net.reallifegames.localauth.api.v1.ApiController;
-import org.mindrot.jbcrypt.BCrypt;
+import net.reallifegames.localauth.DbModule;
 
 import javax.annotation.Nonnull;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 /**
  * A create user request represented as a jackson marshallable object.
@@ -42,140 +36,51 @@ import java.sql.SQLException;
  */
 public class CreateUserRequest {
 
-	/**
-	 * Sql query for checking if a user exists.
-	 */
-	private static final String QUERY_USER_EXISTS = "SELECT `username` FROM `users` WHERE `username`=?;";
+    /**
+     * Requested username for new user.
+     */
+    private final String username;
 
-	/**
-	 * Sql query for creating a new user.
-	 */
-	private static final String CREATE_USER = "INSERT INTO `users`(`username`, `password`, `admin`, `active`) VALUES (?, ?, ?, ?);";
+    /**
+     * Requested password for new user.
+     */
+    private final String Password;
 
-	/**
-	 * Sql query for checking if a user is an admin.
-	 */
-	private static final String QUERY_USER_ADMIN = "SELECT `admin` FROM `users` WHERE `username`=?;";
+    /**
+     * Constructor for Jackson json marshalling.
+     *
+     * @param username requested username for new user.
+     * @param password requested password for new user.
+     */
+    @JsonCreator
+    public CreateUserRequest(@Nonnull @JsonProperty ("username") final String username,
+                             @Nonnull @JsonProperty ("password") final String password) {
+        this.username = username;
+        Password = password;
+    }
 
-	/**
-	 * Requested username for new user.
-	 */
-	private final String username;
+    /**
+     * @param dbModule the module instance to use.
+     * @return true if a user exists in the database false otherwise.
+     */
+    boolean userExists(@Nonnull final DbModule dbModule) {
+        return dbModule.userExists(this.username);
+    }
 
-	/**
-	 * Requested password for new user.
-	 */
-	private final String Password;
+    /**
+     * @return false if the username or password length is zero.
+     */
+    boolean isDataValid() {
+        return !(this.username.length() == 0 || this.Password.length() == 0);
+    }
 
-	/**
-	 * Constructor for Jackson json marshalling.
-	 *
-	 * @param username requested username for new user.
-	 * @param password requested password for new user.
-	 */
-	@JsonCreator
-	public CreateUserRequest(@Nonnull @JsonProperty ("username") final String username,
-	                         @Nonnull @JsonProperty ("password") final String password) {
-		this.username = username;
-		Password = password;
-	}
-
-	/**
-	 * @return true if a user exists in the database false otherwise.
-	 */
-	boolean userExists() {
-		return CreateUserRequest.userExists(this.username);
-	}
-
-	/**
-	 * @return false if the username or password length is zero.
-	 */
-	boolean isDataValid() {
-		return !(this.username.length() == 0 || this.Password.length() == 0);
-	}
-
-	/**
-	 * Checks to see if the user is an admin.
-	 *
-	 * @param authUsername the attempted admins username.
-	 * @return true if the user is an admin false otherwise.
-	 */
-	public static boolean isUserAuthenticated(@Nonnull final String authUsername) {
-		boolean isAdmin = false;
-		// Query if user is an admin
-		if (LocalAuth.isDebugMode()) {
-			isAdmin = authUsername.equals("test");
-		} else {
-			try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
-				final PreparedStatement queryStatement = connection.prepareStatement(QUERY_USER_ADMIN);
-				queryStatement.setString(1, authUsername);
-				// Process results
-				final ResultSet result = queryStatement.executeQuery();
-				if (result.next()) {
-					isAdmin = result.getBoolean("admin");
-				}
-				result.close();
-				queryStatement.close();
-			} catch (SQLException e) {
-				ApiController.LOGGER.debug("Create user authenticate error", e);
-			}
-		}
-		return isAdmin;
-	}
-
-	/**
-	 * Checks to see if a user already exists.
-	 *
-	 * @param username the username to check.
-	 * @return true if the user exists false otherwise.
-	 */
-	public static boolean userExists(@Nonnull final String username) {
-		boolean returnResult = true;
-		// Query for user information
-		if (LocalAuth.isDebugMode()) {
-			returnResult = username.equals("test");
-		} else {
-			try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
-				final PreparedStatement queryStatement = connection.prepareStatement(QUERY_USER_EXISTS);
-				queryStatement.setString(1, username);
-				// Parse result information
-				final ResultSet result = queryStatement.executeQuery();
-				returnResult = result.next();
-				result.close();
-				queryStatement.close();
-			} catch (SQLException e) {
-				ApiController.LOGGER.debug("Create user request check if user exists error", e);
-			}
-		}
-		return returnResult;
-	}
-
-	/**
-	 * Attempts to create a new user.
-	 *
-	 * @return true if the user was created false otherwise.
-	 */
-	public boolean createUser() {
-		if(LocalAuth.isDebugMode()) {
-			return !this.username.equals("test500");
-		}
-		// Hash the users password
-		final String userPassword = BCrypt.hashpw(this.Password, BCrypt.gensalt());
-		// Prep user INSERT query
-		try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
-			final PreparedStatement queryStatement = connection.prepareStatement(CREATE_USER);
-			// Set query data
-			queryStatement.setString(1, this.username);
-			queryStatement.setString(2, userPassword);
-			queryStatement.setBoolean(3, false);
-			queryStatement.setBoolean(4, false);
-			// Execute insert statement
-			queryStatement.executeUpdate();
-			queryStatement.close();
-		} catch (SQLException e) {
-			ApiController.LOGGER.debug("Create user request create user error", e);
-			return false;
-		}
-		return true;
-	}
+    /**
+     * Attempts to create a new user.
+     *
+     * @param dbModule the module instance to use.
+     * @return true if the user was created false otherwise.
+     */
+    public boolean createUser(@Nonnull final DbModule dbModule) {
+        return dbModule.createUser(this.username, this.Password, false, false);
+    }
 }

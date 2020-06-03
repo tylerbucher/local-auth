@@ -26,13 +26,11 @@ package net.reallifegames.localauth.api.v1.login;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.jsonwebtoken.Jws;
-import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.DbModule;
 import net.reallifegames.localauth.api.v1.ApiController;
-import net.reallifegames.localauth.api.v1.createUser.CreateUserRequest;
-import org.mindrot.jbcrypt.BCrypt;
 
 import javax.annotation.Nonnull;
-import java.sql.*;
+import java.sql.Date;
 
 /**
  * A login request represented as a jackson marshallable object.
@@ -41,76 +39,48 @@ import java.sql.*;
  */
 public class LoginRequest {
 
-	/**
-	 * The username to check the password for.
-	 */
-	private final String username;
+    /**
+     * The username to check the password for.
+     */
+    private final String username;
 
-	/**
-	 * The password to verify.
-	 */
-	private final String password;
+    /**
+     * The password to verify.
+     */
+    private final String password;
 
-	/**
-	 * The SQL query for user information.
-	 */
-	private static final String QUERY_USER_PASSWORD = "SELECT `password`, `active` FROM `users` WHERE `username`=?;";
+    /**
+     * Constructor for Jackson json marshalling.
+     *
+     * @param username the requested login username.
+     * @param password the requested login password.
+     */
+    @JsonCreator
+    public LoginRequest(@Nonnull @JsonProperty ("username") final String username,
+                        @Nonnull @JsonProperty ("password") final String password) {
+        this.username = username;
+        this.password = password;
+    }
 
-	/**
-	 * Constructor for Jackson json marshalling.
-	 *
-	 * @param username the requested login username.
-	 * @param password the requested login password.
-	 */
-	@JsonCreator
-	public LoginRequest(@Nonnull @JsonProperty ("username") final String username,
-	                    @Nonnull @JsonProperty ("password") final String password) {
-		this.username = username;
-		this.password = password;
-	}
+    /**
+     * @return true if a user exists in the database false otherwise.
+     */
+    boolean userExists(@Nonnull final DbModule dbModule) {
+        return dbModule.userExists(this.username);
+    }
 
-	/**
-	 * @return true if a user exists in the database false otherwise.
-	 */
-	boolean userExists() {
-		return LocalAuth.isDebugMode() || CreateUserRequest.userExists(this.username);
-	}
+    /**
+     * @param dbModule the module instance to use.
+     * @return true if the user is able to login false otherwise.
+     */
+    boolean isUserAuthenticated(@Nonnull final DbModule dbModule) {
+        return dbModule.isLoginInfoValid(this.username, this.password);
+    }
 
-	/**
-	 * @return true if a user is active and their password matches.
-	 */
-	boolean userAuthenticated() {
-		// Set initial variables
-		String hashPassword = "";
-		boolean isActive = false;
-		if (LocalAuth.isDebugMode()) {
-			hashPassword = BCrypt.hashpw("test", BCrypt.gensalt());
-			isActive = true;
-		} else {
-			try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
-				// Query database
-				final PreparedStatement queryStatement = connection.prepareStatement(QUERY_USER_PASSWORD);
-				queryStatement.setString(1, username);
-				final ResultSet result = queryStatement.executeQuery();
-				// Obtain results
-				if (result.next()) {
-					hashPassword = result.getString("password");
-					isActive = result.getBoolean("active");
-				}
-				result.close();
-				queryStatement.close();
-			} catch (SQLException e) {
-				ApiController.LOGGER.debug("Login request authenticate check", e);
-			}
-		}
-		// Check if user is active and their password matches
-		return isActive && hashPassword.length() != 0 && BCrypt.checkpw(this.password, hashPassword);
-	}
-
-	/**
-	 * @return a newly created {@link Jws} token for the user.
-	 */
-	String generateAuthToken() {
-		return ApiController.getJWSToken(this.username, new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-	}
+    /**
+     * @return a newly created {@link Jws} token for the user.
+     */
+    String generateAuthToken() {
+        return ApiController.getJWSToken(this.username, new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
+    }
 }

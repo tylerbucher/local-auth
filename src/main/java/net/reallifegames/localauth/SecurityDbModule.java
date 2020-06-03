@@ -21,46 +21,48 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package net.reallifegames.localauth.api.v1.user;
-
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import net.reallifegames.localauth.DbModule;
-import net.reallifegames.localauth.api.v1.ApiController;
+package net.reallifegames.localauth;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.Map;
 
 /**
- * A user request represented as a jackson marshallable object.
+ * A module to handle all security and authentication related functions.
  *
  * @author Tyler Bucher
  */
-public class UserRequest {
+public final class SecurityDbModule implements SecurityModule {
 
     /**
-     * The username to check the password for.
+     * A static class to hold the singleton.
      */
-    private final String username;
+    private static final class SingletonHolder {
 
-    /**
-     * Constructor for Jackson json marshalling.
-     *
-     * @param username the requested login username.
-     */
-    @JsonCreator
-    public UserRequest(@Nonnull @JsonProperty ("username") final String username) {
-        this.username = username;
+        /**
+         * The security module singleton.
+         */
+        private static final SecurityDbModule INSTANCE = new SecurityDbModule();
     }
 
     /**
-     * @param dbModule the module instance to use.
-     * @return a user response for a user or null if an error.
+     * @return {@link SecurityDbModule} singleton.
      */
-    @Nullable
-    public UserResponse getUserResponse(@Nonnull final DbModule dbModule) {
-        final Map.Entry<Boolean, Boolean> entry = dbModule.getUserResponse(this.username);
-        return entry == null ? null : new UserResponse(ApiController.apiResponse, this.username, entry.getKey(), entry.getValue());
+    public static SecurityDbModule getInstance() {
+        return SingletonHolder.INSTANCE;
+    }
+
+    @Override
+    public boolean isUserAdmin(@Nonnull final String authUsername) {
+        return LocalAuth.getDbModule().getAdminStatus(authUsername);
+    }
+
+    /**
+     * Checks to see if the user is an admin.
+     *
+     * @param authUsername the attempted admins username.
+     * @param dbModule     the module instance to use.
+     * @return true if the user is an admin false otherwise.
+     */
+    public boolean isUserAdmin(@Nonnull final String authUsername, @Nonnull final DbModule dbModule) {
+        return dbModule.getAdminStatus(authUsername);
     }
 }

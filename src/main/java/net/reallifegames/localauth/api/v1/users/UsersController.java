@@ -24,18 +24,14 @@
 package net.reallifegames.localauth.api.v1.users;
 
 import io.javalin.http.Context;
-import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.DbModule;
+import net.reallifegames.localauth.SecurityDbModule;
+import net.reallifegames.localauth.SecurityModule;
+import net.reallifegames.localauth.SqlModule;
 import net.reallifegames.localauth.api.v1.ApiController;
-import net.reallifegames.localauth.api.v1.createUser.CreateUserRequest;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Base users api controller, which dispatches information about users in this application. This is a secure api
@@ -45,47 +41,31 @@ import java.util.List;
  */
 public class UsersController {
 
-	/**
-	 * Sql query for obtaining all users.
-	 */
-	private static final String QUERY_ALL_USERS = "SELECT `username` FROM `users` WHERE 1;";
+    /**
+     * Returns all users the the client.
+     *
+     * @param context the REST request context to modify if the user is not an admin.
+     * @throws IOException if the object could not be marshaled.
+     */
+    public static void getUsers(@Nonnull final Context context) throws IOException {
+        getUsers(context, SecurityDbModule.getInstance(), SqlModule.getInstance());
+    }
 
-	/**
-	 * Returns all users the the client.
-	 */
-	@SuppressWarnings ("Duplicates")
-	public static void getUsers(@Nonnull final Context context) throws IOException {
-		// Check if user is an admin
-		final String rawCookie = context.cookie("authToken");
-		final String authUsername = ApiController.getJWSUsernameClaim(rawCookie == null ? "" : rawCookie);
-		if (!CreateUserRequest.isUserAuthenticated(authUsername)) {
-			context.status(401);
-			context.result("Unauthorized");
-			return;
-		}
-		context.status(200);
-		// Set response payload
-		ApiController.jsonContextResponse(new UsersResponse(ApiController.apiResponse, UsersController.getUserList()), context);
-	}
-
-	/**
-	 * @return a list of all users by username.
-	 */
-	public static List<String> getUserList() {
-		final List<String> userList = new ArrayList<>();
-		if (!LocalAuth.isDebugMode()) {
-			try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
-				final PreparedStatement queryStatement = connection.prepareStatement(QUERY_ALL_USERS);
-				final ResultSet resultSet = queryStatement.executeQuery();
-				while (resultSet.next()) {
-					userList.add(resultSet.getString(1));
-				}
-				resultSet.close();
-				queryStatement.close();
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-		return userList;
-	}
+    /**
+     * Returns all users to the the client.
+     *
+     * @param context        the REST request context to modify if the user is not an admin.
+     * @param securityModule the module instance to use.
+     * @param dbModule       the module instance to use.
+     * @throws IOException if the object could not be marshaled.
+     */
+    public static void getUsers(@Nonnull final Context context, @Nonnull final SecurityModule securityModule, @Nonnull DbModule dbModule) throws IOException {
+        // Check if user is an admin
+        if (!ApiController.isUserAdmin(context, securityModule)) {
+            return;
+        }
+        context.status(200);
+        // Set response payload
+        ApiController.jsonContextResponse(new UsersResponse(ApiController.apiResponse, dbModule.getUserList()), context);
+    }
 }

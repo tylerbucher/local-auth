@@ -35,17 +35,17 @@ import javax.annotation.Nonnull;
 @JsonRootName ("api")
 public class ApiResponse {
 
-	/**
-	 * Current version of this API.
-	 */
-	public final String version;
+    /**
+     * Current version of this API.
+     */
+    public final String version;
 
-	/**
-	 * Response constructor for Jackson json marshalling.
-	 *
-	 * @param version the string version of an api to return.
-	 */
-	public ApiResponse(@Nonnull final String version) {
-		this.version = version;
-	}
+    /**
+     * Response constructor for Jackson json marshalling.
+     *
+     * @param version the string version of an api to return.
+     */
+    public ApiResponse(@Nonnull final String version) {
+        this.version = version;
+    }
 }

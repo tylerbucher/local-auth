@@ -23,11 +23,11 @@
  */
 package net.reallifegames.localauth.api.v1.login;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.io.SegmentedStringWriter;
 import io.javalin.http.Context;
 import io.jsonwebtoken.Jws;
+import net.reallifegames.localauth.DbModule;
 import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.SqlModule;
 import net.reallifegames.localauth.api.v1.ApiController;
 
 import javax.annotation.Nonnull;
@@ -43,44 +43,58 @@ import static net.reallifegames.localauth.api.v1.ApiController.apiResponse;
  */
 public class LoginController {
 
-	/**
-	 * Login controller api error response.
-	 */
-	private static final LoginResponse loginErrorResponse = new LoginResponse(apiResponse, "error", "");
+    /**
+     * Login controller api error response.
+     */
+    private static final LoginResponse loginErrorResponse = new LoginResponse(apiResponse, "error", "");
 
-	/**
-	 * Attempts to login a user and return their {@link Jws} token.
-	 */
-	public static void postLoginUser(@Nonnull final Context context) throws IOException {
-		// Set response type
-		final LoginRequest userRequest;
-		try {
-			userRequest = LocalAuth.objectMapper.readValue(context.body(), LoginRequest.class);
-		} catch (IOException e) {
-			ApiController.LOGGER.debug("Api login controller request marshall error", e);
-			context.status(400);
-			context.result("Bad Request");
-			return;
-		}
-		final LoginResponse userResponse;
-		// Check if user exists and is verified
-		if (userRequest.userExists() && userRequest.userAuthenticated()) {
-			// Return user token and success response
-			userResponse = new LoginResponse(apiResponse, "success", userRequest.generateAuthToken());
-		} else {
-			// Return error response
-			userResponse = loginErrorResponse;
-		}
-		// Set response code
-		context.status(userResponse.equals(loginErrorResponse) ? 409 : 200);
-		final Cookie cookie = new Cookie("authToken", userResponse.token);
-		cookie.setDomain(LocalAuth.DOMAIN);
-		cookie.setPath("/");
-		cookie.setMaxAge(604800);
-		cookie.setHttpOnly(true);
-		cookie.setSecure(false);
-		context.cookie(cookie);
-		// Prep Jackson-JSON
-		ApiController.jsonContextResponse(userResponse, context);
-	}
+    /**
+     * Attempts to login a user and return their {@link Jws} token if the information is valid.
+     *
+     * @param context the REST request context to modify.
+     * @throws IOException if the object could not be marshaled.
+     */
+    public static void postLoginUser(@Nonnull final Context context) throws IOException {
+        postLoginUser(context, SqlModule.getInstance());
+    }
+
+    /**
+     * Attempts to login a user and return their {@link Jws} token if the information is valid.
+     *
+     * @param context  the REST request context to modify.
+     * @param dbModule the module instance to use.
+     * @throws IOException if the object could not be marshaled.
+     */
+    public static void postLoginUser(@Nonnull final Context context, @Nonnull final DbModule dbModule) throws IOException {
+        // Set response type
+        final LoginRequest userRequest;
+        try {
+            userRequest = LocalAuth.objectMapper.readValue(context.body(), LoginRequest.class);
+        } catch (IOException e) {
+            ApiController.LOGGER.debug("Api login controller request marshall error", e);
+            context.status(400);
+            context.result("Bad Request");
+            return;
+        }
+        final LoginResponse userResponse;
+        // Check if user exists and is verified
+        if (userRequest.userExists(dbModule) && userRequest.isUserAuthenticated(dbModule)) {
+            // Return user token and success response
+            userResponse = new LoginResponse(apiResponse, "success", userRequest.generateAuthToken());
+        } else {
+            // Return error response
+            userResponse = loginErrorResponse;
+        }
+        // Set response code
+        context.status(userResponse.equals(loginErrorResponse) ? 409 : 200);
+        final Cookie cookie = new Cookie("authToken", userResponse.token);
+        cookie.setDomain(LocalAuth.DOMAIN);
+        cookie.setPath("/");
+        cookie.setMaxAge(604800);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
+        context.cookie(cookie);
+        // Prep Jackson-JSON
+        ApiController.jsonContextResponse(userResponse, context);
+    }
 }

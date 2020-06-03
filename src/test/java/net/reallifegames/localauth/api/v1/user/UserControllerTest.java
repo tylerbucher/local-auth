@@ -24,60 +24,63 @@
 package net.reallifegames.localauth.api.v1.user;
 
 import io.javalin.http.Context;
-import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.DbModule;
+import net.reallifegames.localauth.SecurityDbModule;
 import net.reallifegames.localauth.api.v1.ApiController;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.Date;
 
 public class UserControllerTest {
 
-	@BeforeClass
-	public static void setUp() {
-		LocalAuth.setDebugMode(true);
-	}
+    private final Context ctx = Mockito.mock(Context.class);
+    private final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
+    private final DbModule dbModule = Mockito.mock(DbModule.class);
 
-	@Test
-	public void GET_getUser_401_Unauthorized() {
-		final Context ctx = Mockito.mock(Context.class);
-		Mockito.when(ctx.pathParam(":username")).thenReturn("errortest");
-		Mockito.when(ctx.cookie("authToken")).thenReturn("");
-		try {
-			UserController.getUser(ctx);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		Mockito.verify(ctx).status(401);
-	}
+    @Test
+    public void GET_getUser_401_Unauthorized() {
+        Mockito.when(ctx.pathParam(":username")).thenReturn(ArgumentMatchers.anyString());
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.isUserAdmin("")).thenReturn(false);
+        try {
+            UserController.getUser(ctx, securityModule, dbModule);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Mockito.verify(ctx).status(401);
+    }
 
-	@Test
-	public void GET_getUser_500_InvalidRequest() {
-		final Context ctx = Mockito.mock(Context.class);
-		final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-		Mockito.when(ctx.cookie("authToken")).thenReturn(token);
-		Mockito.when(ctx.pathParam(":username")).thenReturn("test500");
-		try {
-			UserController.getUser(ctx);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		Mockito.verify(ctx).status(500);
-	}
+    @Test
+    public void GET_getUser_500_InvalidRequest() {
+        Mockito.when(ctx.pathParam(":username")).thenReturn("test");
+        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
+        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+        Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
+        Mockito.when(dbModule.getUserResponse("test")).thenReturn(null);
+        try {
+            UserController.getUser(ctx, securityModule, dbModule);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Mockito.verify(ctx).status(500);
+    }
 
-	@Test
-	public void GET_getUser_200_Success() {
-		final Context ctx = Mockito.mock(Context.class);
-		final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-		Mockito.when(ctx.cookie("authToken")).thenReturn(token);
-		Mockito.when(ctx.pathParam(":username")).thenReturn("test");
-		try {
-			UserController.getUser(ctx);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		Mockito.verify(ctx).status(200);
-	}
+    @Test
+    public void GET_getUser_200_Success() {
+        Mockito.when(ctx.pathParam(":username")).thenReturn("test");
+        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
+        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+        Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
+        Mockito.when(dbModule.getUserResponse("test")).thenReturn(new AbstractMap.SimpleEntry<>(true, true));
+        try {
+            UserController.getUser(ctx, securityModule, dbModule);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Mockito.verify(ctx).status(200);
+    }
 }

@@ -24,10 +24,9 @@
 package net.reallifegames.localauth.api.v1.users;
 
 import io.javalin.http.Context;
-import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.DbModule;
+import net.reallifegames.localauth.SecurityDbModule;
 import net.reallifegames.localauth.api.v1.ApiController;
-import net.reallifegames.localauth.api.v1.createUser.CreateUserController;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -36,17 +35,15 @@ import java.util.Date;
 
 public class UsersControllerTest {
 
-	@BeforeClass
-	public static void setUp() {
-		LocalAuth.setDebugMode(true);
-	}
-
 	@Test
 	public void GET_getUsers_401_Unauthorized() {
 		final Context ctx = Mockito.mock(Context.class);
+		final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
+		final DbModule dbModule = Mockito.mock(DbModule.class);
 		Mockito.when(ctx.cookie("authToken")).thenReturn("");
+		Mockito.when(securityModule.isUserAdmin("", dbModule)).thenReturn(false);
 		try {
-			UsersController.getUsers(ctx);
+			UsersController.getUsers(ctx, securityModule, dbModule);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -56,10 +53,13 @@ public class UsersControllerTest {
 	@Test
 	public void GET_getUsers_200_Success() {
 		final Context ctx = Mockito.mock(Context.class);
+		final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
+		final DbModule dbModule = Mockito.mock(DbModule.class);
 		final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
 		Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+		Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
 		try {
-			UsersController.getUsers(ctx);
+			UsersController.getUsers(ctx, securityModule, dbModule);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

@@ -24,17 +24,12 @@
 package net.reallifegames.localauth.api.v1.dash;
 
 import io.javalin.http.Context;
-import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.DbModule;
+import net.reallifegames.localauth.SqlModule;
 import net.reallifegames.localauth.api.v1.ApiController;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Base dash api controller, which dispatches information about dash endpoints in this application. This is a secure api
@@ -44,39 +39,25 @@ import java.util.List;
  */
 public class DashController {
 
-	/**
-	 * Default dash response.
-	 */
-	private static final String GET_DASH_ITEMS_SQL = "SELECT * FROM `dash` ORDER BY `id` ASC;";
+    /**
+     * Gets the list of dash endpoints.
+     *
+     * @param context the REST request context to modify.
+     */
+    public static void getEndpoints(@Nonnull final Context context) throws IOException {
+        getEndpoints(context, SqlModule.getInstance());
+    }
 
-	/**
-	 * Gets the list of dash endpoints.
-	 */
-	public static void getEndpoints(@Nonnull final Context context) throws IOException {
-		// Set response type and status code
-		context.status(200);
-		// Set response payload
-		ApiController.jsonContextResponse(new DashResponse(ApiController.apiResponse, getDashItems()), context);
-	}
-
-	/**
-	 * @return the list of dash items.
-	 */
-	private static List<String> getDashItems() {
-		final List<String> strings = new ArrayList<>();
-		if (!LocalAuth.isDebugMode()) {
-			try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
-				final PreparedStatement preparedStatement = connection.prepareStatement(GET_DASH_ITEMS_SQL);
-				final ResultSet resultSet = preparedStatement.executeQuery();
-				while (resultSet.next()) {
-					strings.add(resultSet.getString("value"));
-				}
-				resultSet.close();
-				preparedStatement.close();
-			} catch (SQLException e) {
-				LocalAuth.LOGGER.error("Dash sql error", e);
-			}
-		}
-		return strings;
-	}
+    /**
+     * Gets the list of dash endpoints.
+     *
+     * @param context  the REST request context to modify.
+     * @param dbModule the module instance to use.
+     */
+    public static void getEndpoints(@Nonnull final Context context, @Nonnull final DbModule dbModule) throws IOException {
+        // Set response type and status code
+        context.status(200);
+        // Set response payload
+        ApiController.jsonContextResponse(new DashResponse(ApiController.apiResponse, dbModule.getDashItems()), context);
+    }
 }

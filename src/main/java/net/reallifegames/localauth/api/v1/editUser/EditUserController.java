@@ -24,9 +24,8 @@
 package net.reallifegames.localauth.api.v1.editUser;
 
 import io.javalin.http.Context;
-import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.*;
 import net.reallifegames.localauth.api.v1.ApiController;
-import net.reallifegames.localauth.api.v1.createUser.CreateUserRequest;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -38,42 +37,58 @@ import java.io.IOException;
  */
 public class EditUserController {
 
-	/**
-	 * Default edit user success response.
-	 */
-	private static final EditUserResponse successResponse = new EditUserResponse(ApiController.apiResponse, "success");
+    /**
+     * Default edit user success response.
+     */
+    private static final EditUserResponse successResponse = new EditUserResponse(ApiController.apiResponse, "success");
 
-	/**
-	 * Default edit user error response.
-	 */
-	private static final EditUserResponse errorResponse = new EditUserResponse(ApiController.apiResponse, "error");
+    /**
+     * Default edit user error response.
+     */
+    private static final EditUserResponse errorResponse = new EditUserResponse(ApiController.apiResponse, "error");
 
-	/**
-	 * Updates the user via the patch request.
-	 */
-	public static void patchUser(@Nonnull final Context context) throws IOException {
-		final EditUserRequest userRequest;
-		try {
-			userRequest = LocalAuth.objectMapper.readValue(context.body(), EditUserRequest.class);
-		} catch (IOException e) {
-			ApiController.LOGGER.debug("Api login controller request marshall error", e);
-			context.status(400);
-			context.result("Bad Request");
-			return;
-		}
-		final EditUserResponse userResponse;
-		// Check if user is an admin
-		final String rawCookie = context.cookie("authToken");
-		final String authUsername = ApiController.getJWSUsernameClaim(rawCookie == null ? "" : rawCookie);
-		if (CreateUserRequest.isUserAuthenticated(authUsername)) {
-			userRequest.updateUser();
-			userResponse = successResponse;
-		} else {
-			userResponse = errorResponse;
-		}
-		// Set response status
-		context.status(userResponse.equals(successResponse) ? 200 : 401);
-		// Return payload
-		ApiController.jsonContextResponse(userResponse, context);
-	}
+    /**
+     * Updates the user via the patch request.
+     *
+     * @param context the REST request context to modify.
+     * @throws IOException the object could not be marshaled.
+     */
+    public static void patchUser(@Nonnull final Context context) throws IOException {
+        patchUser(context, SecurityDbModule.getInstance(), SqlModule.getInstance());
+    }
+
+    /**
+     * Updates the user via the patch request.
+     *
+     * @param context        the REST request context to modify if the user is not an admin.
+     * @param securityModule the module instance to use.
+     * @param dbModule       the module instance to use.
+     * @throws IOException if the object could not be marshaled.
+     */
+    public static void patchUser(@Nonnull final Context context, @Nonnull final SecurityModule securityModule, @Nonnull final DbModule dbModule) throws IOException {
+        final EditUserRequest userRequest;
+        try {
+            userRequest = LocalAuth.objectMapper.readValue(context.body(), EditUserRequest.class);
+        } catch (IOException e) {
+            ApiController.LOGGER.debug("Api login controller request marshall error", e);
+            context.status(400);
+            context.result("Bad Request");
+            return;
+        }
+        final EditUserResponse userResponse;
+        // Check if user is an admin
+        if (ApiController.isUserAdmin(context, securityModule)) {
+            if (!userRequest.updateUser(dbModule)) {
+                context.status(500);
+                context.result("Internal Server Error");
+                return;
+            }
+            userResponse = successResponse;
+            context.status(200);
+        } else {
+            userResponse = errorResponse;
+        }
+        // Return payload
+        ApiController.jsonContextResponse(userResponse, context);
+    }
 }

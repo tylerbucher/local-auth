@@ -34,12 +34,14 @@ import javax.annotation.Nonnull;
  */
 public class TokenValidityController {
 
-	/**
-	 * Returns the current version of this api.
-	 */
-	public static void getTokenValidity(@Nonnull final Context context) {
-		// Set response stat us
-		context.status(200);
-		context.result("");
-	}
+    /**
+     * Checks to see if a token is valid.
+     *
+     * @param context the REST request context to modify.
+     */
+    public static void getTokenValidity(@Nonnull final Context context) {
+        // Set response stat us
+        context.status(200);
+        context.result("");
+    }
 }

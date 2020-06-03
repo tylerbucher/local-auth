@@ -21,28 +21,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package net.reallifegames.localauth.index;
-
-import io.javalin.http.Context;
-import net.reallifegames.localauth.LocalAuth;
+package net.reallifegames.localauth;
 
 import javax.annotation.Nonnull;
 
 /**
- * The view controller for logging in a user.
+ * An interface to define data agnostic functions.
  *
  * @author Tyler Bucher
  */
-public class IndexViewController {
+public interface SecurityModule {
 
-	/**
-	 * Returns the current version of this api.
-	 */
-	public static void getIndexPage(@Nonnull final Context context) {
-		// Set response stat us
-		context.status(200);
-		context.contentType("text/html; charset=UTF-8");
-		// Return payload
-		context.result(LocalAuth.INDEX_PAGE);
-	}
+    /**
+     * Checks to see if the user is an admin.
+     *
+     * @param authUsername the attempted admins username.
+     * @return true if the user is an admin false otherwise.
+     */
+    boolean isUserAdmin(@Nonnull final String authUsername);
 }
