@@ -24,10 +24,7 @@
 package net.reallifegames.localauth.api.v1.users;
 
 import io.javalin.http.Context;
-import net.reallifegames.localauth.DbModule;
-import net.reallifegames.localauth.SecurityDbModule;
-import net.reallifegames.localauth.SecurityModule;
-import net.reallifegames.localauth.SqlModule;
+import net.reallifegames.localauth.*;
 import net.reallifegames.localauth.api.v1.ApiController;
 
 import javax.annotation.Nonnull;
@@ -48,7 +45,7 @@ public class UsersController {
      * @throws IOException if the object could not be marshaled.
      */
     public static void getUsers(@Nonnull final Context context) throws IOException {
-        getUsers(context, SecurityDbModule.getInstance(), SqlModule.getInstance());
+        getUsers(context, SecurityDbModule.getInstance(), LocalAuth.getDbModule());
     }
 
     /**

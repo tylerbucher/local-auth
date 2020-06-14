@@ -26,6 +26,8 @@ package net.reallifegames.localauth.api.v1;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.io.SegmentedStringWriter;
 import io.javalin.http.Context;
+import io.javalin.http.ForbiddenResponse;
+import io.javalin.http.UnauthorizedResponse;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import net.reallifegames.localauth.LocalAuth;
@@ -79,6 +81,7 @@ public class ApiController {
         if (!isJWSTokenValid(context.cookie("authToken"))) {
             context.status(401);
             context.result("Unauthorized");
+            throw new UnauthorizedResponse("Unauthorized");
         }
     }
 
@@ -184,8 +187,8 @@ public class ApiController {
         final String rawCookie = context.cookie("authToken");
         final String authUsername = ApiController.getJWSUsernameClaim(rawCookie == null ? "" : rawCookie);
         if (!securityModule.isUserAdmin(authUsername)) {
-            context.status(401);
-            context.result("Unauthorized");
+            context.status(403);
+            context.result("Forbidden");
             return false;
         }
         return true;

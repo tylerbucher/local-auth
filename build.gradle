@@ -37,6 +37,7 @@ dependencies {
     compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.18'
     compile 'io.jsonwebtoken:jjwt-api:0.10.7'
     compile 'com.zaxxer:HikariCP:3.4.2'
+    compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.31.1'
 
     shadow group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
     shadow group: 'org.mindrot', name: 'jbcrypt', version: '0.4'
@@ -46,6 +47,7 @@ dependencies {
     shadow 'io.jsonwebtoken:jjwt-impl:0.10.7'
     shadow 'io.jsonwebtoken:jjwt-jackson:0.10.7'
     shadow 'com.zaxxer:HikariCP:3.4.2'
+    shadow group: 'org.xerial', name: 'sqlite-jdbc', version: '3.31.1'
 
     testCompile 'io.javalin:javalin:3.8.0'
     testCompile group: 'junit', name: 'junit', version: '4.12'

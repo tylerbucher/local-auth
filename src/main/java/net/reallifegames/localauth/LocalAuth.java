@@ -26,8 +26,6 @@ package net.reallifegames.localauth;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import io.javalin.Javalin;
 import io.javalin.apibuilder.ApiBuilder;
 import io.javalin.http.staticfiles.Location;
@@ -45,9 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 
 /**
  * The primary class for this application.
@@ -72,9 +67,9 @@ public class LocalAuth {
     public static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * The proxy path to host the site of if needed.
+     * The database jdbc type.
      */
-    private static String PROXY_PATH = "";
+    private static String JDBC_TYPE = "";
 
     /**
      * The database jdbc url.
@@ -87,28 +82,9 @@ public class LocalAuth {
     public static String DOMAIN = "";
 
     /**
-     * Config fo sql pool information
+     * Static db module reference.
      */
-    private static HikariConfig hikariConfig;
-
-    /**
-     * Sql pool.
-     */
-    private static HikariDataSource dataSource;
-
-    /**
-     * The sql query for creating a users table.
-     */
-    private static final String CREATE_USERS_TABLE = "CREATE TABLE IF NOT EXISTS `users` (`username` VARCHAR(25) " +
-            "NOT NULL, `password` VARCHAR(60) NOT NULL, `admin` BOOLEAN NOT NULL, `active` BOOLEAN NOT NULL, " +
-            "PRIMARY KEY (`username`)) ENGINE = InnoDB;";
-
-    /**
-     * The sql query for creating a dash table.
-     */
-    private static final String CREATE_DASH_TABLE = "CREATE TABLE IF NOT EXISTS `dash` ( `id` INT UNSIGNED NOT NULL , `value` " +
-            "VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL , UNIQUE `id_unique` (`id`)) " +
-            "ENGINE = InnoDB;";
+    private static DbModule DB_MODULE;
 
     /**
      * Main class for the Local Auth application.
@@ -116,21 +92,24 @@ public class LocalAuth {
      * @param args the program arguments to run with.
      */
     public static void main(@Nonnull final String[] args) {
-        LocalAuth.PROXY_PATH = args[1];
-        LocalAuth.JDBC_URL = args[2];
-        LocalAuth.DOMAIN = args[3];
+        LocalAuth.JDBC_TYPE = args[0];
+        LocalAuth.JDBC_URL = args[1];
+        LocalAuth.DOMAIN = args[2];
         LocalAuth.objectMapper.enable(SerializationFeature.WRAP_ROOT_VALUE);
-        //LocalAuth.loadIndexPage();
-        LocalAuth.loadConnectionPool();
+        try {
+            LocalAuth.DB_MODULE = LocalAuth.findDbModule(LocalAuth.JDBC_TYPE);
+        } catch (ClassNotFoundException e) {
+            LOGGER.error("Error loading sq lite driver.", e);
+        }
         // Create users table
-        LocalAuth.createTables();
+        LocalAuth.getDbModule().createTables();
         // Check for first time app launch
-        LocalAuth.firstTimeLaunch(SqlModule.getInstance());
+        LocalAuth.firstTimeLaunch(LocalAuth.getDbModule());
 
         // Set spark port
         final Javalin javalinApp = Javalin.create(config->{
-            //config.addSinglePageRoot(System.getProperty("user.dir") + "/public", System.getProperty("user.dir") + "/public/" + "index.html", Location.EXTERNAL);
             config.addStaticFiles(System.getProperty("user.dir") + "/public", Location.EXTERNAL);
+            config.addSinglePageRoot("/", System.getProperty("user.dir") + "/public/" + "index.html", Location.EXTERNAL);
         });
 
         // CORS information
@@ -142,7 +121,7 @@ public class LocalAuth {
             context.header("Access-Control-Allow-Credentials", "true");
         });
         // Api v1 pathing group
-        javalinApp.routes(()->ApiBuilder.path(LocalAuth.PROXY_PATH + "/api/v1", ()->{
+        javalinApp.routes(()->ApiBuilder.path("/api/v1", ()->{
             // Root api path controller
             ApiBuilder.get("/", ApiController::getApiInformation);
             // Login api controller
@@ -173,45 +152,22 @@ public class LocalAuth {
         javalinApp.start(8080);
     }
 
-    private static void loadConnectionPool() {
-        hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl(getJdbcUrl());
-        hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
-        hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
-        hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-        hikariConfig.addDataSourceProperty("useServerPrepStmts", "true");
-        hikariConfig.addDataSourceProperty("useLocalSessionState", "true");
-        hikariConfig.addDataSourceProperty("rewriteBatchedStatements", "true");
-        hikariConfig.addDataSourceProperty("cacheResultSetMetadata", "true");
-        hikariConfig.addDataSourceProperty("cacheServerConfiguration", "true");
-        hikariConfig.addDataSourceProperty("elideSetAutoCommits", "true");
-        hikariConfig.addDataSourceProperty("maintainTimeStats", "false");
-        dataSource = new HikariDataSource(hikariConfig);
-    }
-
-    /**
-     * Attempts to create the users table.
-     */
-    private static void createTables() {
-        try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
-            final PreparedStatement queryStatement = connection.prepareStatement(CREATE_USERS_TABLE);
-            queryStatement.execute();
-            final PreparedStatement queryStatement2 = connection.prepareStatement(CREATE_DASH_TABLE);
-            queryStatement2.execute();
-            queryStatement.close();
-            queryStatement2.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
+    private static DbModule findDbModule(@Nonnull final String key) throws ClassNotFoundException {
+        switch (key) {
+            case "mysql":
+                return MySqlModule.getInstance();
+            default:
+                Class.forName("org.sqlite.JDBC");
+                return SqLiteModule.getInstance();
         }
     }
 
     /**
      * Add admin account if this is the first time running the application.
      */
-    private static void firstTimeLaunch(@Nonnull DbModule dbModule) {
+    private static void firstTimeLaunch(@Nonnull final DbModule dbModule) {
         if (dbModule.getUserList().isEmpty()) {
-            final CreateUserRequest createUserRequest = new CreateUserRequest("admin", "admin");
-            createUserRequest.createUser(SqlModule.getInstance());
+            dbModule.createUser("admin", "admin", true, true);
         }
     }
 
@@ -219,7 +175,7 @@ public class LocalAuth {
      * @return the current database module instance.
      */
     public static DbModule getDbModule() {
-        return SqlModule.getInstance();
+        return DB_MODULE;
     }
 
     /**
@@ -234,12 +190,5 @@ public class LocalAuth {
      */
     public static String getJdbcUrl() {
         return JDBC_URL;
-    }
-
-    /**
-     * @return the sql connection pool.
-     */
-    public static HikariDataSource getDataSource() {
-        return dataSource;
     }
 }

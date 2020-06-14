@@ -50,7 +50,7 @@ public class EditUserControllerTest {
     }
 
     @Test
-    public void PATCH_patchUser_401_Unauthorized() {
+    public void PATCH_patchUser_403_Unauthorized() {
         final Context ctx = Mockito.mock(Context.class);
         final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
         final DbModule dbModule = Mockito.mock(DbModule.class);
@@ -62,7 +62,7 @@ public class EditUserControllerTest {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Mockito.verify(ctx).status(401);
+        Mockito.verify(ctx).status(403);
     }
 
     @Test

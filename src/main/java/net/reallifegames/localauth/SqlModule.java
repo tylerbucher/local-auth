@@ -43,25 +43,7 @@ import java.util.Map;
  *
  * @author Tyler Bucher
  */
-public final class SqlModule implements DbModule {
-
-    /**
-     * A static class to hold the singleton.
-     */
-    private static final class SingletonHolder {
-
-        /**
-         * The Sql module singleton.
-         */
-        private static final SqlModule INSTANCE = new SqlModule();
-    }
-
-    /**
-     * @return {@link SecurityDbModule} singleton.
-     */
-    public static SqlModule getInstance() {
-        return SqlModule.SingletonHolder.INSTANCE;
-    }
+public abstract class SqlModule implements DbModule {
 
     /**
      * The static logger for this version of the api.
@@ -109,10 +91,24 @@ public final class SqlModule implements DbModule {
     private static final String QUERY_ALL_USERS = "SELECT `username` FROM `users` WHERE 1;";
 
     @Override
+    public void createTables(@Nonnull final String... tableStatements) {
+        try (final Connection connection = getConnection()) {
+            final PreparedStatement queryStatement = connection.prepareStatement(tableStatements[0]);
+            queryStatement.execute();
+            final PreparedStatement queryStatement2 = connection.prepareStatement(tableStatements[1]);
+            queryStatement2.execute();
+            queryStatement.close();
+            queryStatement2.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
     public boolean getAdminStatus(@Nonnull final String authUsername) {
         boolean isAdmin = false;
         // Query if user is an admin
-        try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
+        try (final Connection connection = getConnection()) {
             final PreparedStatement queryStatement = connection.prepareStatement(QUERY_USER_ADMIN);
             queryStatement.setString(1, authUsername);
             // Process results
@@ -131,7 +127,7 @@ public final class SqlModule implements DbModule {
     @Override
     public boolean userExists(@Nonnull final String username) {
         boolean returnResult = true;
-        try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
+        try (final Connection connection = getConnection()) {
             final PreparedStatement queryStatement = connection.prepareStatement(QUERY_USER_EXISTS);
             queryStatement.setString(1, username);
             // Parse result information
@@ -153,7 +149,7 @@ public final class SqlModule implements DbModule {
         // Hash the users password
         final String userPassword = BCrypt.hashpw(password, BCrypt.gensalt());
         // Prep user INSERT query
-        try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
+        try (final Connection connection = getConnection()) {
             final PreparedStatement queryStatement = connection.prepareStatement(CREATE_USER);
             // Set query data
             queryStatement.setString(1, username);
@@ -173,7 +169,7 @@ public final class SqlModule implements DbModule {
     @Override
     public List<String> getDashItems() {
         final List<String> strings = new ArrayList<>();
-        try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
+        try (final Connection connection = getConnection()) {
             final PreparedStatement preparedStatement = connection.prepareStatement(GET_DASH_ITEMS_SQL);
             final ResultSet resultSet = preparedStatement.executeQuery();
             while (resultSet.next()) {
@@ -190,7 +186,7 @@ public final class SqlModule implements DbModule {
     @Override
     public boolean updateUser(final boolean makeAdmin, final boolean setActive, @Nonnull final String newUsername) {
         // Prep sql query
-        try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
+        try (final Connection connection = getConnection()) {
             final PreparedStatement queryStatement = connection.prepareStatement(PATCH_USER_STATUS);
             // Set sql query params
             queryStatement.setBoolean(1, makeAdmin);
@@ -211,7 +207,7 @@ public final class SqlModule implements DbModule {
         // Set initial variables
         String hashPassword = "";
         boolean isActive = false;
-        try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
+        try (final Connection connection = getConnection()) {
             // Query database
             final PreparedStatement queryStatement = connection.prepareStatement(QUERY_USER_PASSWORD);
             queryStatement.setString(1, username);
@@ -234,7 +230,7 @@ public final class SqlModule implements DbModule {
     @Nullable
     public Map.Entry<Boolean, Boolean> getUserResponse(@Nonnull final String username) {
         AbstractMap.SimpleEntry<Boolean, Boolean> response = null;
-        try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
+        try (final Connection connection = getConnection()) {
             final PreparedStatement queryStatement = connection.prepareStatement(QUERY_USER_INFO);
             // Set sql query params
             queryStatement.setString(1, username);
@@ -256,7 +252,7 @@ public final class SqlModule implements DbModule {
     @Override
     public List<String> getUserList() {
         final List<String> userList = new ArrayList<>();
-        try (final Connection connection = LocalAuth.getDataSource().getConnection()) {
+        try (final Connection connection = getConnection()) {
             final PreparedStatement queryStatement = connection.prepareStatement(QUERY_ALL_USERS);
             final ResultSet resultSet = queryStatement.executeQuery();
             while (resultSet.next()) {
@@ -269,4 +265,11 @@ public final class SqlModule implements DbModule {
         }
         return userList;
     }
+
+    /**
+     * @return a sql db connection.
+     *
+     * @throws SQLException if a connection to a db was able to be obtained.
+     */
+    abstract Connection getConnection() throws SQLException;
 }

@@ -24,10 +24,7 @@
 package net.reallifegames.localauth.api.v1.user;
 
 import io.javalin.http.Context;
-import net.reallifegames.localauth.DbModule;
-import net.reallifegames.localauth.SecurityDbModule;
-import net.reallifegames.localauth.SecurityModule;
-import net.reallifegames.localauth.SqlModule;
+import net.reallifegames.localauth.*;
 import net.reallifegames.localauth.api.v1.ApiController;
 
 import javax.annotation.Nonnull;
@@ -48,7 +45,7 @@ public class UserController {
      * @throws IOException if the object could not be marshaled.
      */
     public static void getUser(@Nonnull final Context context) throws IOException {
-        getUser(context, SecurityDbModule.getInstance(), SqlModule.getInstance());
+        getUser(context, SecurityDbModule.getInstance(), LocalAuth.getDbModule());
     }
 
     /**
@@ -61,7 +58,7 @@ public class UserController {
      */
     public static void getUser(@Nonnull final Context context, @Nonnull final SecurityModule securityModule, @Nonnull DbModule dbModule) throws IOException {
         // Set response type and status code
-        final UserRequest userRequest = new UserRequest(context.pathParam(":username"));
+        final UserRequest userRequest = new UserRequest(context.pathParam(":username", String.class).get());
         // Check if user is an admin
         if (!ApiController.isUserAdmin(context, securityModule)) {
             return;

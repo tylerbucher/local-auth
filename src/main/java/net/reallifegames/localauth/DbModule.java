@@ -36,6 +36,16 @@ import java.util.Map;
 public interface DbModule {
 
     /**
+     * Attempts to create the db tables.
+     */
+    void createTables();
+
+    /**
+     * Attempts to create the db tables.
+     */
+    void createTables(@Nonnull final String... tableStatements);
+
+    /**
      * Checks to see if the user is an admin.
      *
      * @param authUsername the attempted admins username.

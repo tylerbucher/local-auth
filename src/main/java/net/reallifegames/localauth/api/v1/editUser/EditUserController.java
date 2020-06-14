@@ -54,7 +54,7 @@ public class EditUserController {
      * @throws IOException the object could not be marshaled.
      */
     public static void patchUser(@Nonnull final Context context) throws IOException {
-        patchUser(context, SecurityDbModule.getInstance(), SqlModule.getInstance());
+        patchUser(context, SecurityDbModule.getInstance(), LocalAuth.getDbModule());
     }
 
     /**

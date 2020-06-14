@@ -55,7 +55,7 @@ public class LoginController {
      * @throws IOException if the object could not be marshaled.
      */
     public static void postLoginUser(@Nonnull final Context context) throws IOException {
-        postLoginUser(context, SqlModule.getInstance());
+        postLoginUser(context, LocalAuth.getDbModule());
     }
 
     /**

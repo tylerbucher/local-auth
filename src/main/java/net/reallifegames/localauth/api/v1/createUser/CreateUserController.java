@@ -53,7 +53,7 @@ public class CreateUserController {
      * @param context the REST request context to modify.
      */
     public static void postNewUser(@Nonnull final Context context) throws IOException {
-        postNewUser(context, SecurityDbModule.getInstance(), SqlModule.getInstance());
+        postNewUser(context, SecurityDbModule.getInstance(), LocalAuth.getDbModule());
     }
 
     /**

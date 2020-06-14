@@ -24,6 +24,7 @@
 package net.reallifegames.localauth.api.v1;
 
 import io.javalin.http.Context;
+import io.javalin.http.UnauthorizedResponse;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.verification.VerificationMode;
@@ -48,9 +49,11 @@ public class ApiControllerTest {
     public void GET_beforeApiAuthentication_Unauthorized() {
         final Context ctx = Mockito.mock(Context.class);
         Mockito.when(ctx.cookie("authToken")).thenReturn("");
-        ApiController.beforeApiAuthentication(ctx);
-
-        ApiControllerTest.mockitoJsonStatus(ctx, 401);
+        try {
+            ApiController.beforeApiAuthentication(ctx);
+        } catch (UnauthorizedResponse e) {
+            ApiControllerTest.mockitoJsonStatus(ctx, 401);
+        }
     }
 
     @Test
@@ -68,9 +71,11 @@ public class ApiControllerTest {
         final Context ctx = Mockito.mock(Context.class);
         final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() - 1));
         Mockito.when(ctx.cookie("authToken")).thenReturn(token);
-        ApiController.beforeApiAuthentication(ctx);
-
-        ApiControllerTest.mockitoJsonStatus(ctx, 401);
+        try {
+            ApiController.beforeApiAuthentication(ctx);
+        } catch (UnauthorizedResponse e) {
+            ApiControllerTest.mockitoJsonStatus(ctx, 401);
+        }
     }
 
     @Test

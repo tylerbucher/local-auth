@@ -9,6 +9,11 @@ import Login from "./Login";
 import Dash from "./Dash";
 
 import "./styles/global.less";
+import "./styles/darcula.less";
+import Management from "./Management";
+import EditUsers from "./EditUsers";
+import CreateUser from "./CreateUser";
+import EditUser from "./EditUser";
 
 function App() {
     return (
@@ -24,15 +29,18 @@ function App() {
                     <Route path="/dash">
                         <Dash />
                     </Route>
-                    {/*<Route path="/createUser">
-                        <About />
+                    <Route path="/management">
+                        <Management />
                     </Route>
-                    <Route path="/users">
-                        <About />
+                    <Route path="/editUsers">
+                        <EditUsers />
+                    </Route>
+                    <Route path="/createUser">
+                        <CreateUser />
                     </Route>
                     <Route path="/editUser">
-                        <About />
-                    </Route>*/}
+                        <EditUser />
+                    </Route>
                 </Switch>
             </div>
         </Router>

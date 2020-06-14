@@ -25,6 +25,7 @@ package net.reallifegames.localauth.api.v1.dash;
 
 import io.javalin.http.Context;
 import net.reallifegames.localauth.DbModule;
+import net.reallifegames.localauth.LocalAuth;
 import net.reallifegames.localauth.SqlModule;
 import net.reallifegames.localauth.api.v1.ApiController;
 
@@ -45,7 +46,7 @@ public class DashController {
      * @param context the REST request context to modify.
      */
     public static void getEndpoints(@Nonnull final Context context) throws IOException {
-        getEndpoints(context, SqlModule.getInstance());
+        getEndpoints(context, LocalAuth.getDbModule());
     }
 
     /**

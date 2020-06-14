@@ -36,7 +36,7 @@ import java.util.Date;
 public class UsersControllerTest {
 
 	@Test
-	public void GET_getUsers_401_Unauthorized() {
+	public void GET_getUsers_403_Unauthorized() {
 		final Context ctx = Mockito.mock(Context.class);
 		final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
 		final DbModule dbModule = Mockito.mock(DbModule.class);
@@ -47,7 +47,7 @@ public class UsersControllerTest {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		Mockito.verify(ctx).status(401);
+		Mockito.verify(ctx).status(403);
 	}
 
 	@Test

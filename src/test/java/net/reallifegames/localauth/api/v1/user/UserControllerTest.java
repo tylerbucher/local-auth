@@ -23,12 +23,12 @@
  */
 package net.reallifegames.localauth.api.v1.user;
 
+import io.javalin.core.validation.Validator;
 import io.javalin.http.Context;
 import net.reallifegames.localauth.DbModule;
 import net.reallifegames.localauth.SecurityDbModule;
 import net.reallifegames.localauth.api.v1.ApiController;
 import org.junit.Test;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import java.io.IOException;
@@ -42,8 +42,8 @@ public class UserControllerTest {
     private final DbModule dbModule = Mockito.mock(DbModule.class);
 
     @Test
-    public void GET_getUser_401_Unauthorized() {
-        Mockito.when(ctx.pathParam(":username")).thenReturn(ArgumentMatchers.anyString());
+    public void GET_getUser_403_Unauthorized() {
+        Mockito.when(ctx.pathParam(":username", String.class)).thenReturn(new Validator<>("test", "Any valid java sting"));
         Mockito.when(ctx.cookie("authToken")).thenReturn("");
         Mockito.when(securityModule.isUserAdmin("")).thenReturn(false);
         try {
@@ -51,12 +51,12 @@ public class UserControllerTest {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Mockito.verify(ctx).status(401);
+        Mockito.verify(ctx).status(403);
     }
 
     @Test
     public void GET_getUser_500_InvalidRequest() {
-        Mockito.when(ctx.pathParam(":username")).thenReturn("test");
+        Mockito.when(ctx.pathParam(":username", String.class)).thenReturn(new Validator<>("test", "Any valid java sting"));
         final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
         Mockito.when(ctx.cookie("authToken")).thenReturn(token);
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
@@ -71,7 +71,7 @@ public class UserControllerTest {
 
     @Test
     public void GET_getUser_200_Success() {
-        Mockito.when(ctx.pathParam(":username")).thenReturn("test");
+        Mockito.when(ctx.pathParam(":username", String.class)).thenReturn(new Validator<>("test", "Any valid java sting"));
         final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
         Mockito.when(ctx.cookie("authToken")).thenReturn(token);
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
