@@ -9,7 +9,7 @@ RUN set -ex; \
 
 FROM node:13-alpine AS client
 
-COPY src/main/resources/ui .
+COPY src/javascript/resources/ui .
 
 RUN set -ex; \
     npm install ; \

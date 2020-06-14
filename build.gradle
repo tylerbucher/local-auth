@@ -90,4 +90,3 @@ npmCustomBuild.dependsOn.add("npmCustomInstall")
 copyReact.dependsOn.add("npmCustomBuild")
 
 build.dependsOn.add("shadowJar")
-build.dependsOn.add("copyReact")
