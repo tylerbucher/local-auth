@@ -9,7 +9,7 @@ RUN set -ex; \
     ./gradlew -q build ; \
     mv build/libs/LocalAuth.jar / ;
 
-RUN sed -i ${HOST} src/javascript/resources/public/401.html
+RUN sed -i ${HOST} src/javascript/resources/ui/public/401.html
 
 FROM node:13-alpine AS client
 
