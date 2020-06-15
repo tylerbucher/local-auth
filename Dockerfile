@@ -1,5 +1,7 @@
 FROM openjdk:8u171-jdk-alpine AS build
 
+ARG HOST
+
 COPY . /
 
 RUN set -ex; \
@@ -14,6 +16,7 @@ COPY src/javascript/resources/ui .
 RUN set -ex; \
     npm install ; \
     npm run build ; \
+    sed -i ${HOST} public/401.html \
     mv build/ /client
 
 FROM openjdk:8u171-jre-alpine

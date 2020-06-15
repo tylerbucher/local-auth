@@ -79,9 +79,12 @@ class Login extends React.Component<LoginProps, LoginState> {
                     let rdirect  = params.get("r");
                     if (rdirect !== null) {
                         window.location.replace(rdirect);
+                    } else {
+                        this.setState({redirect: true});
                     }
+                } else {
+                    this.setState({redirect: true});
                 }
-                this.setState({redirect: true});
             }
         } catch (e) {
             let message = "";
