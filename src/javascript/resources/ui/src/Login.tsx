@@ -74,6 +74,13 @@ class Login extends React.Component<LoginProps, LoginState> {
                 responseType: "json",
             });
             if (response.status === 200) {
+                let params = new URLSearchParams(window.location.search);
+                if (params != null) {
+                    let rdirect  = params.get("r");
+                    if (rdirect !== null) {
+                        window.location.replace(rdirect);
+                    }
+                }
                 this.setState({redirect: true});
             }
         } catch (e) {
