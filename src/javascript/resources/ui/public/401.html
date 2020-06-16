@@ -7,8 +7,8 @@
         var url = new URL(document.location);
         var params = url.searchParams;
         var name = params.get("host");
-        console.log(window.location);
-        console.log(document.location);
+        console.log(window.location.host);
+        console.log(document.location.host);
         window.location.replace("https://$HOST_URL" + "?r=" + url.origin);
     </script>
 </head>
