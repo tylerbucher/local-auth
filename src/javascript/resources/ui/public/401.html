@@ -7,8 +7,8 @@
         var url = new URL(document.location);
         var params = url.searchParams;
         var name = params.get("h");
-        console.log(window.location.search);
-        window.location.replace(name + "?r=" + url.origin);
+        console.log(window.location.href);
+        //window.location.replace(name + "?r=" + url.origin);
     </script>
 </head>
 <body>
