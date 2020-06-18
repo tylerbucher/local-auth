@@ -29,4 +29,4 @@ RUN chmod +x /opt/localauth/docker-entrypoint.sh
 
 WORKDIR /opt/localauth
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/opt/localauth/docker-entrypoint.sh"]
