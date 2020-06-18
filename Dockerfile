@@ -25,7 +25,7 @@ COPY --from=build LocalAuth.jar /opt/localauth/
 COPY --from=build docker-entrypoint.sh /opt/localauth/
 COPY --from=client /client /opt/localauth/public
 
-RUN chmod +x /docker-entrypoint.sh
+RUN chmod +x /opt/localauth/docker-entrypoint.sh
 
 WORKDIR /opt/localauth
 
