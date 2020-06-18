@@ -92,9 +92,9 @@ public class LocalAuth {
      * @param args the program arguments to run with.
      */
     public static void main(@Nonnull final String[] args) {
-        LocalAuth.JDBC_TYPE = args[0];
-        LocalAuth.JDBC_URL = args[1];
-        LocalAuth.DOMAIN = args[2];
+        LocalAuth.JDBC_TYPE = System.getenv("JDBC_TYPE");
+        LocalAuth.JDBC_URL = System.getenv("JDBC_URL");
+        LocalAuth.DOMAIN = System.getenv("DOMAIN");
         LocalAuth.objectMapper.enable(SerializationFeature.WRAP_ROOT_VALUE);
         try {
             LocalAuth.DB_MODULE = LocalAuth.findDbModule(LocalAuth.JDBC_TYPE);

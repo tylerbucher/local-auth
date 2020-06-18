@@ -71,6 +71,11 @@ shadowJar {
     configurations = [project.configurations.shadow]
 }
 
+task copyShell(type: Copy) {
+    from './docker-entrypoint.sh'
+    into 'build/libs/'
+}
+
 task npmCustomInstall(type: NpmTask) {
     workingDir = file('./src/javascript/resources/ui')
     args = ['install']
@@ -90,3 +95,4 @@ npmCustomBuild.dependsOn.add("npmCustomInstall")
 copyReact.dependsOn.add("npmCustomBuild")
 
 build.dependsOn.add("shadowJar")
+build.dependsOn.add("copyShell")

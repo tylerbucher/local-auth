@@ -14,7 +14,6 @@ import Management from "./Management";
 import EditUsers from "./EditUsers";
 import CreateUser from "./CreateUser";
 import EditUser from "./EditUser";
-import FourOOneError from "./401";
 
 function App() {
     return (
@@ -41,9 +40,6 @@ function App() {
                     </Route>
                     <Route path="/editUser">
                         <EditUser />
-                    </Route>
-                    <Route path="/401">
-                        <FourOOneError />
                     </Route>
                 </Switch>
             </div>

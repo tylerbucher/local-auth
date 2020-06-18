@@ -7,7 +7,8 @@ COPY . /
 RUN set -ex; \
     chmod +x ./gradlew ; \
     ./gradlew -q build ; \
-    mv build/libs/LocalAuth.jar / ;
+    mv build/libs/LocalAuth.jar / ; \
+    mv build/libs/docker-entrypoint.sh / ;
 
 FROM node:13-alpine AS client
 
@@ -21,8 +22,11 @@ RUN set -ex; \
 FROM openjdk:8u171-jre-alpine
 
 COPY --from=build LocalAuth.jar /opt/localauth/
+COPY --from=build docker-entrypoint.sh /opt/localauth/
 COPY --from=client /client /opt/localauth/public
+
+RUN chmod +x /docker-entrypoint.sh
 
 WORKDIR /opt/localauth
 
-ENTRYPOINT ["java", "-jar", "/opt/localauth/LocalAuth.jar"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
