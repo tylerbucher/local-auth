@@ -29,10 +29,11 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.javalin.Javalin;
 import io.javalin.apibuilder.ApiBuilder;
 import io.javalin.http.staticfiles.Location;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import net.reallifegames.localauth.api.v1.ApiController;
 import net.reallifegames.localauth.api.v1.adminStatus.AdminStatusController;
 import net.reallifegames.localauth.api.v1.createUser.CreateUserController;
-import net.reallifegames.localauth.api.v1.createUser.CreateUserRequest;
 import net.reallifegames.localauth.api.v1.dash.DashController;
 import net.reallifegames.localauth.api.v1.editUser.EditUserController;
 import net.reallifegames.localauth.api.v1.login.LoginController;
@@ -43,6 +44,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 
 /**
  * The primary class for this application.
@@ -82,9 +85,34 @@ public class LocalAuth {
     public static String DOMAIN = "";
 
     /**
+     * The JWT secretKey auto initialize.
+     */
+    private static boolean SECRET_KEY_AUTO = true;
+
+    /**
+     * The JWT secretKey.
+     */
+    private static SecretKey SECRET_KEY;
+
+    /**
+     * The amount of time in the future the token will expire.
+     */
+    public static long JWT_EXPIRE_TIME = 604800000L;
+
+    /**
      * Static db module reference.
      */
     private static DbModule DB_MODULE;
+
+    /**
+     * Static db module reference.
+     */
+    private static SecurityModule SECURITY_MODULE;
+
+    /**
+     * Static list of hex characters.
+     */
+    private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes();
 
     /**
      * Main class for the Local Auth application.
@@ -95,23 +123,37 @@ public class LocalAuth {
         LocalAuth.JDBC_TYPE = System.getenv("JDBC_TYPE");
         LocalAuth.JDBC_URL = System.getenv("JDBC_URL");
         LocalAuth.DOMAIN = System.getenv("DOMAIN");
+        final String autoEnvString = System.getenv("SECRET_KEY_AUTO");
+        if (autoEnvString != null) {
+            LocalAuth.SECRET_KEY_AUTO = Boolean.parseBoolean(autoEnvString);
+        }
+        final String secretKeyString = System.getenv("SECRET_KEY");
+        if(LocalAuth.SECRET_KEY_AUTO  || secretKeyString == null) {
+            LocalAuth.SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+        } else {
+            LocalAuth.SECRET_KEY = Keys.hmacShaKeyFor(LocalAuth.hexToBytes(secretKeyString));
+        }
+        final String jwtEnvString = System.getenv("JWT_EXPIRE_TIME");
+        if (jwtEnvString != null) {
+            LocalAuth.JWT_EXPIRE_TIME = Long.parseLong(jwtEnvString);
+        }
         LocalAuth.objectMapper.enable(SerializationFeature.WRAP_ROOT_VALUE);
         try {
             LocalAuth.DB_MODULE = LocalAuth.findDbModule(LocalAuth.JDBC_TYPE);
         } catch (ClassNotFoundException e) {
             LOGGER.error("Error loading sq lite driver.", e);
         }
-        // Create users table
-        LocalAuth.getDbModule().createTables();
+        // Create tables
+        LocalAuth.DB_MODULE.createTables();
         // Check for first time app launch
         LocalAuth.firstTimeLaunch(LocalAuth.getDbModule());
-
+        // Setup security modules
+        LocalAuth.SECURITY_MODULE = SecurityDbModule.getInstance();
         // Set spark port
         final Javalin javalinApp = Javalin.create(config->{
             config.addStaticFiles(System.getProperty("user.dir") + "/public", Location.EXTERNAL);
             config.addSinglePageRoot("/", System.getProperty("user.dir") + "/public/" + "index.html", Location.EXTERNAL);
         });
-
         // CORS information
         javalinApp.before("*/*", (context)->{
             context.header("Access-Control-Allow-Origin", "*");
@@ -152,6 +194,29 @@ public class LocalAuth {
         javalinApp.start(8080);
     }
 
+    /**
+     * @param hexString the string to convert.
+     * @return the byte array for a hex string.
+     */
+    private static byte[] hexToBytes(@Nonnull final String hexString) {
+        final int length = hexString.length();
+        final byte[] byteArray = new byte[length / 2];
+        for (int i = 0, j = 0; i < length; i += 2, j++) {
+            byteArray[i / 2] = (byte) ((charToBase16(hexString.charAt(i)) << 4) + charToBase16(hexString.charAt(i + 1)));
+        }
+        return byteArray;
+    }
+
+    /**
+     * Quick converts a valid base 16 character to an int.
+     *
+     * @param c the character to convert.
+     * @return the character as a base 16 number.
+     */
+    private static int charToBase16(final char c) {
+        return c < 58 ? c - 48 : c - 55;
+    }
+
     private static DbModule findDbModule(@Nonnull final String key) throws ClassNotFoundException {
         switch (key) {
             case "mysql":
@@ -182,7 +247,7 @@ public class LocalAuth {
      * @return the current security module instance.
      */
     public static SecurityModule getSecurityModule() {
-        return SecurityDbModule.getInstance();
+        return SECURITY_MODULE;
     }
 
     /**
@@ -190,5 +255,13 @@ public class LocalAuth {
      */
     public static String getJdbcUrl() {
         return JDBC_URL;
+    }
+
+    public static SecretKey getSecretKey() {
+        return SECRET_KEY;
+    }
+
+    public static long getJwtExpireTime() {
+        return JWT_EXPIRE_TIME;
     }
 }

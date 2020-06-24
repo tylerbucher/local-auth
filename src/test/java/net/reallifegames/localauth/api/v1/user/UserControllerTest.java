@@ -57,8 +57,8 @@ public class UserControllerTest {
     @Test
     public void GET_getUser_500_InvalidRequest() {
         Mockito.when(ctx.pathParam(":username", String.class)).thenReturn(new Validator<>("test", "Any valid java sting"));
-        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.getJWSUsernameClaim("")).thenReturn("test");
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
         Mockito.when(dbModule.getUserResponse("test")).thenReturn(null);
         try {
@@ -72,8 +72,8 @@ public class UserControllerTest {
     @Test
     public void GET_getUser_200_Success() {
         Mockito.when(ctx.pathParam(":username", String.class)).thenReturn(new Validator<>("test", "Any valid java sting"));
-        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.getJWSUsernameClaim("")).thenReturn("test");
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
         Mockito.when(dbModule.getUserResponse("test")).thenReturn(new AbstractMap.SimpleEntry<>(true, true));
         try {

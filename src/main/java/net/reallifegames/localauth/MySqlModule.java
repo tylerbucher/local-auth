@@ -63,7 +63,7 @@ public final class MySqlModule extends SqlModule {
     }
 
     /**
-     * Config fo sql pool information
+     * Config for sql pool information
      */
     private HikariConfig hikariConfig;
 

@@ -58,7 +58,7 @@ public class UsersController {
      */
     public static void getUsers(@Nonnull final Context context, @Nonnull final SecurityModule securityModule, @Nonnull DbModule dbModule) throws IOException {
         // Check if user is an admin
-        if (!ApiController.isUserAdmin(context, securityModule)) {
+        if (!ApiController.isUserAdminWithWebContext(context, securityModule)) {
             return;
         }
         context.status(200);

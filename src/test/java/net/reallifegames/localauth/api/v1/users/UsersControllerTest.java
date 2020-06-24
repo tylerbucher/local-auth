@@ -35,34 +35,32 @@ import java.util.Date;
 
 public class UsersControllerTest {
 
-	@Test
-	public void GET_getUsers_403_Unauthorized() {
-		final Context ctx = Mockito.mock(Context.class);
-		final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-		final DbModule dbModule = Mockito.mock(DbModule.class);
-		Mockito.when(ctx.cookie("authToken")).thenReturn("");
-		Mockito.when(securityModule.isUserAdmin("", dbModule)).thenReturn(false);
-		try {
-			UsersController.getUsers(ctx, securityModule, dbModule);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		Mockito.verify(ctx).status(403);
-	}
+    private final Context ctx = Mockito.mock(Context.class);
+    private final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
+    private final DbModule dbModule = Mockito.mock(DbModule.class);
 
-	@Test
-	public void GET_getUsers_200_Success() {
-		final Context ctx = Mockito.mock(Context.class);
-		final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-		final DbModule dbModule = Mockito.mock(DbModule.class);
-		final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-		Mockito.when(ctx.cookie("authToken")).thenReturn(token);
-		Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
-		try {
-			UsersController.getUsers(ctx, securityModule, dbModule);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		Mockito.verify(ctx).status(200);
-	}
+    @Test
+    public void GET_getUsers_403_Unauthorized() {
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.isUserAdmin("", dbModule)).thenReturn(false);
+        try {
+            UsersController.getUsers(ctx, securityModule, dbModule);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Mockito.verify(ctx).status(403);
+    }
+
+    @Test
+    public void GET_getUsers_200_Success() {
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.getJWSUsernameClaim("")).thenReturn("test");
+        Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
+        try {
+            UsersController.getUsers(ctx, securityModule, dbModule);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Mockito.verify(ctx).status(200);
+    }
 }

@@ -23,7 +23,12 @@
  */
 package net.reallifegames.localauth;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Date;
 
 /**
  * An interface to define data agnostic functions.
@@ -39,4 +44,29 @@ public interface SecurityModule {
      * @return true if the user is an admin false otherwise.
      */
     boolean isUserAdmin(@Nonnull final String authUsername);
+
+    /**
+     * Checks if a {@link Jws} token is valid.
+     *
+     * @param authCookie the authentication token to verify.
+     * @return true if the token is valid false otherwise.
+     */
+    boolean isJWSTokenValid(@Nullable final String authCookie);
+
+    /**
+     * Gets a {@link Jws} token for a username, and sets its expire time.
+     *
+     * @param username       the username for this token.
+     * @param expirationDate the date for the token to expire at.
+     * @return the generated token.
+     */
+    String getJWSToken(@Nonnull final String username, @Nonnull final Date expirationDate);
+
+    /**
+     * Extract the username {@link Claims claim} for the {@link Jws} token payload.
+     *
+     * @param token the JWS string token to process.
+     * @return the obtained username or "".
+     */
+    String getJWSUsernameClaim(@Nonnull final String token);
 }

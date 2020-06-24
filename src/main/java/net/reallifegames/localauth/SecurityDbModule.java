@@ -23,7 +23,16 @@
  */
 package net.reallifegames.localauth;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import net.reallifegames.localauth.api.v1.ApiController;
+
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.crypto.SecretKey;
+import java.util.Date;
 
 /**
  * A module to handle all security and authentication related functions.
@@ -64,5 +73,46 @@ public final class SecurityDbModule implements SecurityModule {
      */
     public boolean isUserAdmin(@Nonnull final String authUsername, @Nonnull final DbModule dbModule) {
         return dbModule.getAdminStatus(authUsername);
+    }
+
+    @Override
+    public boolean isJWSTokenValid(@Nullable final String authCookie) {
+        if (authCookie == null || authCookie.length() == 0) {
+            return false;
+        }
+        try {
+            Jwts.parser().setSigningKey(LocalAuth.getSecretKey()).parseClaimsJws(authCookie);
+        } catch (JwtException e) {
+            ApiController.LOGGER.debug("JWS Token Parse Error", e);
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String getJWSToken(@Nonnull final String username, @Nonnull final Date expirationDate) {
+        return Jwts.builder()
+                .setExpiration(expirationDate)
+                .claim("username", username)
+                .signWith(LocalAuth.getSecretKey())
+                .compact();
+    }
+
+    @Override
+    public String getJWSUsernameClaim(@Nonnull final String token) {
+        // Attempt to extract the username
+        if (token.length() == 0) {
+            ApiController.LOGGER.debug("JWS Token Parse Error");
+            return "";
+        }
+        try {
+            final Jws<Claims> jws = Jwts.parser()
+                    .setSigningKey(LocalAuth.getSecretKey())
+                    .parseClaimsJws(token);
+            return jws.getBody().get("username", String.class);
+        } catch (JwtException ex) {
+            ApiController.LOGGER.debug("JWS Token Parse Error", ex);
+            return "";
+        }
     }
 }

@@ -36,13 +36,13 @@ import java.util.Date;
 
 public class AdminStatusControllerTest {
 
+    private final Context ctx = Mockito.mock(Context.class);
+    private final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
+
     @Test
     public void GET_getAdminStatus_403_Unauthorized() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.cookie("authToken")).thenReturn("");
-        Mockito.when(securityModule.isUserAdmin("", dbModule)).thenReturn(false);
+        Mockito.when(securityModule.isUserAdmin("")).thenReturn(false);
         try {
             AdminStatusController.getAdminStatus(ctx, securityModule);
         } catch (IOException e) {
@@ -53,11 +53,9 @@ public class AdminStatusControllerTest {
 
     @Test
     public void GET_getAdminStatus_200_Success() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
+        Mockito.when(securityModule.getJWSUsernameClaim("")).thenReturn("test");
         try {
             AdminStatusController.getAdminStatus(ctx, securityModule);
         } catch (IOException e) {

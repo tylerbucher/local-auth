@@ -27,6 +27,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.jsonwebtoken.Jws;
 import net.reallifegames.localauth.DbModule;
+import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.SecurityDbModule;
+import net.reallifegames.localauth.SecurityModule;
 import net.reallifegames.localauth.api.v1.ApiController;
 
 import javax.annotation.Nonnull;
@@ -80,7 +83,7 @@ public class LoginRequest {
     /**
      * @return a newly created {@link Jws} token for the user.
      */
-    String generateAuthToken() {
-        return ApiController.getJWSToken(this.username, new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
+    String generateAuthToken(@Nonnull final SecurityModule securityModule) {
+        return securityModule.getJWSToken(this.username, new Date(System.currentTimeMillis() +  LocalAuth.getJwtExpireTime()));
     }
 }

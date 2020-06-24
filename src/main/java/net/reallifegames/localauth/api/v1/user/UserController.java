@@ -60,7 +60,7 @@ public class UserController {
         // Set response type and status code
         final UserRequest userRequest = new UserRequest(context.pathParam(":username", String.class).get());
         // Check if user is an admin
-        if (!ApiController.isUserAdmin(context, securityModule)) {
+        if (!ApiController.isUserAdminWithWebContext(context, securityModule)) {
             return;
         }
         final UserResponse userResponse = userRequest.getUserResponse(dbModule);

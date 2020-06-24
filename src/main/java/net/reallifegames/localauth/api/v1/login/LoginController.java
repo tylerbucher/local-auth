@@ -27,6 +27,7 @@ import io.javalin.http.Context;
 import io.jsonwebtoken.Jws;
 import net.reallifegames.localauth.DbModule;
 import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.SecurityModule;
 import net.reallifegames.localauth.SqlModule;
 import net.reallifegames.localauth.api.v1.ApiController;
 
@@ -55,7 +56,7 @@ public class LoginController {
      * @throws IOException if the object could not be marshaled.
      */
     public static void postLoginUser(@Nonnull final Context context) throws IOException {
-        postLoginUser(context, LocalAuth.getDbModule());
+        postLoginUser(context, LocalAuth.getDbModule(), LocalAuth.getSecurityModule());
     }
 
     /**
@@ -65,7 +66,7 @@ public class LoginController {
      * @param dbModule the module instance to use.
      * @throws IOException if the object could not be marshaled.
      */
-    public static void postLoginUser(@Nonnull final Context context, @Nonnull final DbModule dbModule) throws IOException {
+    public static void postLoginUser(@Nonnull final Context context, @Nonnull final DbModule dbModule, @Nonnull final SecurityModule securityModule) throws IOException {
         // Set response type
         final LoginRequest userRequest;
         try {
@@ -80,7 +81,7 @@ public class LoginController {
         // Check if user exists and is verified
         if (userRequest.userExists(dbModule) && userRequest.isUserAuthenticated(dbModule)) {
             // Return user token and success response
-            userResponse = new LoginResponse(apiResponse, "success", userRequest.generateAuthToken());
+            userResponse = new LoginResponse(apiResponse, "success", userRequest.generateAuthToken(securityModule));
         } else {
             // Return error response
             userResponse = loginErrorResponse;

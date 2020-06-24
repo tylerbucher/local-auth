@@ -25,16 +25,23 @@ package net.reallifegames.localauth.api.v1.login;
 
 import io.javalin.http.Context;
 import net.reallifegames.localauth.DbModule;
+import net.reallifegames.localauth.LocalAuth;
+import net.reallifegames.localauth.SecurityModule;
+import net.reallifegames.localauth.api.v1.ApiController;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.io.IOException;
+import java.sql.Date;
 
 public class LoginControllerTest {
 
+    private final Context ctx = Mockito.mock(Context.class);
+    private final DbModule dbModule = Mockito.mock(DbModule.class);
+    private final SecurityModule securityModule = Mockito.mock(SecurityModule.class);
+
     @Test
     public void POST_postLoginUser_400_InvalidRequest() {
-        final Context ctx = Mockito.mock(Context.class);
         Mockito.when(ctx.body()).thenReturn("");
         try {
             LoginController.postLoginUser(ctx);
@@ -46,13 +53,11 @@ public class LoginControllerTest {
 
     @Test
     public void POST_postLoginUser_409_LoginError() {
-        final Context ctx = Mockito.mock(Context.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("{\"username\":\"\", \"password\": \"\"}");
         Mockito.when(dbModule.userExists("")).thenReturn(false);
         Mockito.when(dbModule.isLoginInfoValid("", "")).thenReturn(false);
         try {
-            LoginController.postLoginUser(ctx, dbModule);
+            LoginController.postLoginUser(ctx, dbModule, securityModule);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -61,13 +66,12 @@ public class LoginControllerTest {
 
     @Test
     public void POST_postLoginUser_200_LoggedIn() {
-        final Context ctx = Mockito.mock(Context.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("{\"username\":\"test\", \"password\": \"test\"}");
         Mockito.when(dbModule.userExists("test")).thenReturn(true);
+        Mockito.when(securityModule.getJWSToken("test", new Date(System.currentTimeMillis() + LocalAuth.getJwtExpireTime()))).thenReturn("");
         Mockito.when(dbModule.isLoginInfoValid("test", "test")).thenReturn(true);
         try {
-            LoginController.postLoginUser(ctx, dbModule);
+            LoginController.postLoginUser(ctx, dbModule, securityModule);
         } catch (IOException e) {
             e.printStackTrace();
         }

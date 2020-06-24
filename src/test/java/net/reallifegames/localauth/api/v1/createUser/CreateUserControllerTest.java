@@ -36,11 +36,12 @@ import java.util.Date;
 
 public class CreateUserControllerTest {
 
+    private final Context ctx = Mockito.mock(Context.class);
+    private final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
+    private final DbModule dbModule = Mockito.mock(DbModule.class);
+
     @Test
     public void POST_postNewUser_400_MarshallError() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("");
         try {
             CreateUserController.postNewUser(ctx, securityModule, dbModule);
@@ -52,9 +53,6 @@ public class CreateUserControllerTest {
 
     @Test
     public void POST_postNewUser_403_Unauthorized() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("{\"username\":\"test\", \"password\": \"test\"}");
         Mockito.when(ctx.cookie("authToken")).thenReturn("");
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(false);
@@ -68,12 +66,9 @@ public class CreateUserControllerTest {
 
     @Test
     public void POST_postNewUser_406_InvalidData() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("{\"username\":\"\", \"password\": \"\"}");
-        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.getJWSUsernameClaim("")).thenReturn("test");
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
         try {
             CreateUserController.postNewUser(ctx, securityModule, dbModule);
@@ -85,12 +80,9 @@ public class CreateUserControllerTest {
 
     @Test
     public void POST_postNewUser_409_DataConflict() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("{\"username\":\"test\", \"password\": \"test\"}");
-        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.getJWSUsernameClaim("")).thenReturn("test");
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
         Mockito.when(dbModule.userExists("test")).thenReturn(true);
         try {
@@ -103,12 +95,9 @@ public class CreateUserControllerTest {
 
     @Test
     public void POST_postNewUser_500_DataConflict() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("{\"username\":\"test\", \"password\": \"test\"}");
-        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.getJWSUsernameClaim("")).thenReturn("test");
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
         Mockito.when(dbModule.userExists("test")).thenReturn(false);
         Mockito.when(dbModule.createUser("test", "test", false, false)).thenReturn(false);
@@ -122,12 +111,9 @@ public class CreateUserControllerTest {
 
     @Test
     public void POST_postNewUser_200_Success() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("{\"username\":\"test\", \"password\": \"test\"}");
-        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.getJWSUsernameClaim("")).thenReturn("test");
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
         Mockito.when(dbModule.userExists("test")).thenReturn(false);
         Mockito.when(dbModule.createUser("test", "test", false, false)).thenReturn(true);

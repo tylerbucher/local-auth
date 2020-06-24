@@ -61,7 +61,7 @@ public class AdminStatusController {
      */
     public static void getAdminStatus(@Nonnull final Context context, @Nonnull final SecurityModule securityModule) throws IOException {
         // Check if user is an admin
-        if (!ApiController.isUserAdmin(context, securityModule)) {
+        if (!ApiController.isUserAdminWithWebContext(context, securityModule)) {
             return;
         }
         // Set response stat us

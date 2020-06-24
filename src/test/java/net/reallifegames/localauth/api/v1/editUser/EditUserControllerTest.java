@@ -35,11 +35,12 @@ import java.util.Date;
 
 public class EditUserControllerTest {
 
+    private final Context ctx = Mockito.mock(Context.class);
+    private final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
+    private final DbModule dbModule = Mockito.mock(DbModule.class);
+
     @Test
     public void PATCH_patchUser_400_MarshallError() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("");
         try {
             EditUserController.patchUser(ctx, securityModule, dbModule);
@@ -51,9 +52,6 @@ public class EditUserControllerTest {
 
     @Test
     public void PATCH_patchUser_403_Unauthorized() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("{\"updateUsername\":\"test\", \"admin\": true, \"active\": true}");
         Mockito.when(ctx.cookie("authToken")).thenReturn("");
         Mockito.when(securityModule.isUserAdmin("test", dbModule)).thenReturn(false);
@@ -67,12 +65,9 @@ public class EditUserControllerTest {
 
     @Test
     public void PATCH_patchUser_500_Internal() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("{\"updateUsername\":\"test\", \"admin\": true, \"active\": true}");
-        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.getJWSUsernameClaim("")).thenReturn("test");
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
         Mockito.when(dbModule.updateUser(true, true, "test")).thenReturn(false);
         try {
@@ -85,12 +80,9 @@ public class EditUserControllerTest {
 
     @Test
     public void PATCH_patchUser_200_Success() {
-        final Context ctx = Mockito.mock(Context.class);
-        final SecurityDbModule securityModule = Mockito.mock(SecurityDbModule.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(ctx.body()).thenReturn("{\"updateUsername\":\"test\", \"admin\": true, \"active\": true}");
-        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.getJWSUsernameClaim("")).thenReturn("test");
         Mockito.when(securityModule.isUserAdmin("test")).thenReturn(true);
         Mockito.when(dbModule.updateUser(true, true, "test")).thenReturn(true);
         try {

@@ -77,7 +77,7 @@ public class EditUserController {
         }
         final EditUserResponse userResponse;
         // Check if user is an admin
-        if (ApiController.isUserAdmin(context, securityModule)) {
+        if (ApiController.isUserAdminWithWebContext(context, securityModule)) {
             if (!userRequest.updateUser(dbModule)) {
                 context.status(500);
                 context.result("Internal Server Error");

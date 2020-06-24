@@ -23,12 +23,16 @@
  */
 package net.reallifegames.localauth;
 
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -93,12 +97,11 @@ public abstract class SqlModule implements DbModule {
     @Override
     public void createTables(@Nonnull final String... tableStatements) {
         try (final Connection connection = getConnection()) {
-            final PreparedStatement queryStatement = connection.prepareStatement(tableStatements[0]);
-            queryStatement.execute();
-            final PreparedStatement queryStatement2 = connection.prepareStatement(tableStatements[1]);
-            queryStatement2.execute();
-            queryStatement.close();
-            queryStatement2.close();
+            for (final String statement : tableStatements) {
+                final PreparedStatement queryStatement = connection.prepareStatement(statement);
+                queryStatement.execute();
+                queryStatement.close();
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }

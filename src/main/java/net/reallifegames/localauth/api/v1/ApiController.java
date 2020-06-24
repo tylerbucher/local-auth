@@ -26,7 +26,6 @@ package net.reallifegames.localauth.api.v1;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.io.SegmentedStringWriter;
 import io.javalin.http.Context;
-import io.javalin.http.ForbiddenResponse;
 import io.javalin.http.UnauthorizedResponse;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -37,10 +36,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.util.Date;
 
 /**
  * Base Api controller, handles initial authentication and api versioning responses.
@@ -55,16 +52,6 @@ public class ApiController {
     public static final Logger LOGGER = LoggerFactory.getLogger(ApiController.class);
 
     /**
-     * The SHA-256 secret key. This will be regenerated every time the application starts up.
-     */
-    private static SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-
-    /**
-     * The amount of time in the future the token will expire.
-     */
-    public static final long DEFAULT_EXPIRE_TIME_EXT = 604800000L;
-
-    /**
      * Global api version response.
      */
     public static final ApiResponse apiResponse = new ApiResponse("v1");
@@ -75,10 +62,19 @@ public class ApiController {
      * @param context the REST request context to modify.
      */
     public static void beforeApiAuthentication(@Nonnull final Context context) {
+        beforeApiAuthentication(context, LocalAuth.getSecurityModule());
+    }
+
+    /**
+     * Should be called before all secure api end-points.
+     *
+     * @param context the REST request context to modify.
+     */
+    public static void beforeApiAuthentication(@Nonnull final Context context, @Nonnull final SecurityModule securityModule) {
         // Set response type
         context.contentType("application/json");
         // Check if user is authenticated
-        if (!isJWSTokenValid(context.cookie("authToken"))) {
+        if (!securityModule.isJWSTokenValid(context.cookie("authToken"))) {
             context.status(401);
             context.result("Unauthorized");
             throw new UnauthorizedResponse("Unauthorized");
@@ -120,72 +116,15 @@ public class ApiController {
     }
 
     /**
-     * Gets a {@link Jws} token for a username, and sets its expire time.
-     *
-     * @param username       the username for this token.
-     * @param expirationDate the date for the token to expire at.
-     * @return the generated token.
-     */
-    public static String getJWSToken(@Nonnull final String username, @Nonnull final Date expirationDate) {
-        return Jwts.builder()
-                .setExpiration(expirationDate)
-                .claim("username", username)
-                .signWith(SECRET_KEY)
-                .compact();
-    }
-
-    /**
-     * Extract the username {@link Claims claim} for the {@link Jws} token payload.
-     *
-     * @param token the JWS string token to process.
-     * @return the obtained username or "".
-     */
-    public static String getJWSUsernameClaim(@Nonnull final String token) {
-        // Attempt to extract the username
-        if (token.length() == 0) {
-            LOGGER.debug("JWS Token Parse Error");
-            return "";
-        }
-        try {
-            final Jws<Claims> jws = Jwts.parser()
-                    .setSigningKey(SECRET_KEY)
-                    .parseClaimsJws(token);
-            return jws.getBody().get("username", String.class);
-        } catch (JwtException ex) {
-            LOGGER.debug("JWS Token Parse Error", ex);
-            return "";
-        }
-    }
-
-    /**
-     * Checks if a {@link Jws} token is valid.
-     *
-     * @param authCookie the authentication token to verify.
-     * @return true if the token is valid false otherwise.
-     */
-    private static boolean isJWSTokenValid(@Nullable final String authCookie) {
-        if (authCookie == null || authCookie.length() == 0) {
-            return false;
-        }
-        try {
-            Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(authCookie);
-        } catch (JwtException e) {
-            LOGGER.debug("JWS Token Parse Error", e);
-            return false;
-        }
-        return true;
-    }
-
-    /**
      * Checks if a user is an admin and modifies the context
      *
      * @param context        the REST request context to modify if the user is not an admin.
      * @param securityModule the module instance to use.
      * @return true if the user is and admin false otherwise.
      */
-    public static boolean isUserAdmin(@Nonnull final Context context, @Nonnull final SecurityModule securityModule) {
+    public static boolean isUserAdminWithWebContext(@Nonnull final Context context, @Nonnull final SecurityModule securityModule) {
         final String rawCookie = context.cookie("authToken");
-        final String authUsername = ApiController.getJWSUsernameClaim(rawCookie == null ? "" : rawCookie);
+        final String authUsername = securityModule.getJWSUsernameClaim(rawCookie == null ? "" : rawCookie);
         if (!securityModule.isUserAdmin(authUsername)) {
             context.status(403);
             context.result("Forbidden");

@@ -77,7 +77,7 @@ public class CreateUserController {
             context.result("Bad Request");
             return;
         }
-        if (!ApiController.isUserAdmin(context, securityModule)) {
+        if (!ApiController.isUserAdminWithWebContext(context, securityModule)) {
             return;
         }
         if (!userRequest.isDataValid()) {

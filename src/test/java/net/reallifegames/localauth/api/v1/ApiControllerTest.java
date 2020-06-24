@@ -25,15 +25,19 @@ package net.reallifegames.localauth.api.v1;
 
 import io.javalin.http.Context;
 import io.javalin.http.UnauthorizedResponse;
+import net.reallifegames.localauth.SecurityDbModule;
+import net.reallifegames.localauth.SecurityModule;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.verification.VerificationMode;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.Date;
 
 public class ApiControllerTest {
+
+    private final Context ctx = Mockito.mock(Context.class);
+    private final SecurityModule securityModule = Mockito.mock(SecurityModule.class);
 
     public static void mockitoJsonStatus(@Nonnull final Context context, int status) {
         Mockito.verify(context).contentType("application/json");
@@ -47,10 +51,10 @@ public class ApiControllerTest {
 
     @Test
     public void GET_beforeApiAuthentication_Unauthorized() {
-        final Context ctx = Mockito.mock(Context.class);
         Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.isJWSTokenValid("")).thenReturn(false);
         try {
-            ApiController.beforeApiAuthentication(ctx);
+            ApiController.beforeApiAuthentication(ctx, securityModule);
         } catch (UnauthorizedResponse e) {
             ApiControllerTest.mockitoJsonStatus(ctx, 401);
         }
@@ -58,29 +62,15 @@ public class ApiControllerTest {
 
     @Test
     public void GET_beforeApiAuthentication_Authorized() {
-        final Context ctx = Mockito.mock(Context.class);
-        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() + ApiController.DEFAULT_EXPIRE_TIME_EXT));
-        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
-        ApiController.beforeApiAuthentication(ctx);
+        Mockito.when(ctx.cookie("authToken")).thenReturn("");
+        Mockito.when(securityModule.isJWSTokenValid("")).thenReturn(true);
+        ApiController.beforeApiAuthentication(ctx, securityModule);
 
         ApiControllerTest.mockitoJsonStatusNot(ctx, 401);
     }
 
     @Test
-    public void GET_beforeApiAuthentication_Unauthorized_TokenExpire() {
-        final Context ctx = Mockito.mock(Context.class);
-        final String token = ApiController.getJWSToken("test", new Date(System.currentTimeMillis() - 1));
-        Mockito.when(ctx.cookie("authToken")).thenReturn(token);
-        try {
-            ApiController.beforeApiAuthentication(ctx);
-        } catch (UnauthorizedResponse e) {
-            ApiControllerTest.mockitoJsonStatus(ctx, 401);
-        }
-    }
-
-    @Test
     public void GET_getApiInformation_200_ApiResponse() {
-        final Context ctx = Mockito.mock(Context.class);
         try {
             ApiController.getApiInformation(ctx);
         } catch (IOException e) {

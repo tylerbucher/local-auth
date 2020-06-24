@@ -33,10 +33,11 @@ import java.util.ArrayList;
 
 public class DashControllerTest {
 
+    private final Context ctx = Mockito.mock(Context.class);
+    private final DbModule dbModule = Mockito.mock(DbModule.class);
+
     @Test
     public void GET_getEndpoints_200_Success() {
-        final Context ctx = Mockito.mock(Context.class);
-        final DbModule dbModule = Mockito.mock(DbModule.class);
         Mockito.when(dbModule.getDashItems()).thenReturn(new ArrayList<>());
         try {
             DashController.getEndpoints(ctx, dbModule);

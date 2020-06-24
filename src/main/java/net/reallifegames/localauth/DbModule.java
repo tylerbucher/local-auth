@@ -25,6 +25,7 @@ package net.reallifegames.localauth;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.crypto.SecretKey;
 import java.util.List;
 import java.util.Map;
 
