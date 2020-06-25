@@ -32,7 +32,6 @@ class Dash extends React.Component<DashProps, DashState> {
             if (response.status !== 200) {
                 dash.setState({redirect: true});
             }
-            console.log(response.data.api.endpoints);
             let arr = new Array<JSON>();
             response.data.api.endpoints.forEach(function (item: string) {
                arr.push(JSON.parse(item));
