@@ -1,16 +1,13 @@
 plugins {
     id 'java'
     id 'application'
-    id "com.github.hierynomus.license" version "0.14.0"
-    id 'com.github.johnrengelman.shadow' version '2.0.2'
-    id "com.github.node-gradle.node" version "2.2.3"
+    id "com.github.hierynomus.license" version "0.16.1"
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
 }
 
 group 'net.reallifegames.local'
-version '1.0-SNAPSHOT'
+version '1.0'
 mainClassName = 'net.reallifegames.localauth.LocalAuth'
-
-sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
@@ -20,79 +17,59 @@ configurations {
     compile.extendsFrom shadow
 }
 
-sourceSets {
-    javascript
-}
-
-jar {
-    baseName = 'LocalAuth'
-    version =  '1.0.0'
-}
-
 dependencies {
-    compile 'io.javalin:javalin:3.8.0'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.4'
-    compile group: 'com.google.code.findbugs', name: 'jsr305', version: '1.3.9'
-    compile group: 'org.mindrot', name: 'jbcrypt', version: '0.4'
-    compile group: 'mysql', name: 'mysql-connector-java', version: '8.0.18'
-    compile 'io.jsonwebtoken:jjwt-api:0.10.7'
-    compile 'com.zaxxer:HikariCP:3.4.2'
-    compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.31.1'
-
-    shadow group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
-    shadow group: 'org.mindrot', name: 'jbcrypt', version: '0.4'
-    shadow 'io.javalin:javalin:3.8.0'
-    shadow 'com.fasterxml.jackson.core:jackson-databind:2.9.4'
-    shadow group: 'mysql', name: 'mysql-connector-java', version: '8.0.18'
-    shadow 'io.jsonwebtoken:jjwt-impl:0.10.7'
-    shadow 'io.jsonwebtoken:jjwt-jackson:0.10.7'
-    shadow 'com.zaxxer:HikariCP:3.4.2'
-    shadow group: 'org.xerial', name: 'sqlite-jdbc', version: '3.31.1'
-
-    testCompile 'io.javalin:javalin:3.8.0'
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-    testCompile 'org.mockito:mockito-core:3.3.3'
+    implementation(
+            ['io.javalin:javalin:3.8.0'],
+            ['com.fasterxml.jackson.core:jackson-databind:2.9.4'],
+            ['com.google.code.findbugs:jsr305:1.3.9'],
+            ['org.mindrot:jbcrypt:0.4'],
+            ['mysql:mysql-connector-java:8.0.18'],
+            ['io.jsonwebtoken:jjwt-api:0.10.7'],
+            ['io.jsonwebtoken:jjwt-impl:0.10.7'],
+            ['io.jsonwebtoken:jjwt-jackson:0.10.7'],
+            ['com.zaxxer:HikariCP:3.4.2'],
+            ['org.xerial:sqlite-jdbc:3.31.1'],
+            ['org.mongodb:mongo-java-driver:3.12.7'],
+            ['dev.morphia.morphia:morphia-core:2.0.2'],
+            ['org.slf4j:slf4j-simple:1.7.25']
+    )
+    shadow(
+            ['io.javalin:javalin:3.8.0'],
+            ['com.fasterxml.jackson.core:jackson-databind:2.9.4'],
+            ['org.mindrot:jbcrypt:0.4'],
+            ['org.mongodb:mongo-java-driver:3.12.7'],
+            ['dev.morphia.morphia:morphia-core:2.0.2'],
+            ['com.zaxxer:HikariCP:3.4.2'],
+            ['org.xerial:sqlite-jdbc:3.31.1'],
+            ['io.jsonwebtoken:jjwt-impl:0.10.7'],
+            ['io.jsonwebtoken:jjwt-jackson:0.10.7'],
+            ['mysql:mysql-connector-java:8.0.18'],
+            ['org.slf4j:slf4j-simple:1.7.25']
+    )
+    testImplementation(
+            ['io.javalin:javalin:3.8.0'],
+            ['org.mockito:mockito-core:3.3.3'],
+            ['de.bwaldvogel:mongo-java-server:1.38.0'],
+            ['junit:junit:4.12'],
+            ['io.jsonwebtoken:jjwt-impl:0.10.7'],
+            ['io.jsonwebtoken:jjwt-jackson:0.10.7'],
+    )
 }
 
 license {
     header project.file("LICENSE.txt")
     strictCheck true
     mapping {
-        java='SLASHSTAR_STYLE'
+        java = 'SLASHSTAR_STYLE'
     }
-    excludes(["**/ui", "**/*.txt", "**/*.html", "**/*.css", "**/*.js"])
 }
 
 shadowJar {
-    baseName = "LocalAuth"
-    classifier = null
-    version = null
-
-    configurations = [project.configurations.shadow]
+    archiveBaseName.set('LocalAuth')
+    archiveClassifier.set('')
+    archiveVersion.set('')
 }
 
-task copyShell(type: Copy) {
-    from './docker-entrypoint.sh'
-    into 'build/libs/'
+wrapper {
+    gradleVersion = '7.1'
 }
-
-task npmCustomInstall(type: NpmTask) {
-    workingDir = file('./src/javascript/resources/ui')
-    args = ['install']
-}
-
-task npmCustomBuild(type: NpmTask) {
-    workingDir = file('./src/javascript/resources/ui')
-    args = ['run', 'build']
-}
-
-task copyReact(type: Copy) {
-    from 'src/javascript/resources/ui/build'
-    into 'build/libs/public'
-}
-
-npmCustomBuild.dependsOn.add("npmCustomInstall")
-copyReact.dependsOn.add("npmCustomBuild")
-
-build.dependsOn.add("shadowJar")
-build.dependsOn.add("copyShell")

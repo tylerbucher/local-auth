@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2019 Tyler Bucher
+ * Copyright (c) 2019 - Present, Tyler Bucher
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,27 +25,30 @@ package net.reallifegames.localauth;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import io.javalin.Javalin;
 import io.javalin.apibuilder.ApiBuilder;
 import io.javalin.http.staticfiles.Location;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import net.reallifegames.localauth.api.v1.ApiController;
-import net.reallifegames.localauth.api.v1.adminStatus.AdminStatusController;
-import net.reallifegames.localauth.api.v1.createUser.CreateUserController;
-import net.reallifegames.localauth.api.v1.dash.DashController;
-import net.reallifegames.localauth.api.v1.editUser.EditUserController;
-import net.reallifegames.localauth.api.v1.login.LoginController;
-import net.reallifegames.localauth.api.v1.tokenValidity.TokenValidityController;
-import net.reallifegames.localauth.api.v1.user.UserController;
-import net.reallifegames.localauth.api.v1.users.UsersController;
+import net.reallifegames.localauth.api.v2.authentication.get.AuthenticationGetController;
+import net.reallifegames.localauth.api.v2.authentication.post.AuthenticationPostController;
+import net.reallifegames.localauth.api.v2.invites.delete.InviteDeleteController;
+import net.reallifegames.localauth.api.v2.invites.get.InviteGetController;
+import net.reallifegames.localauth.api.v2.invites.patch.InvitePatchController;
+import net.reallifegames.localauth.api.v2.invites.post.InvitePostController;
+import net.reallifegames.localauth.api.v2.nodes.delete.NodeDeleteController;
+import net.reallifegames.localauth.api.v2.nodes.get.NodeGetController;
+import net.reallifegames.localauth.api.v2.nodes.patch.NodePatchController;
+import net.reallifegames.localauth.api.v2.nodes.patch.NodePatchRequest;
+import net.reallifegames.localauth.api.v2.nodes.post.NodePostController;
+import net.reallifegames.localauth.api.v2.permissions.get.PermissionsGetController;
+import net.reallifegames.localauth.api.v2.users.delete.UserDeleteController;
+import net.reallifegames.localauth.api.v2.users.get.UserGetController;
+import net.reallifegames.localauth.api.v2.users.patch.UserPatchController;
+import net.reallifegames.localauth.api.v2.users.post.UserPostController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 
 /**
  * The primary class for this application.
@@ -70,39 +73,9 @@ public class LocalAuth {
     public static final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * The database jdbc type.
-     */
-    private static String JDBC_TYPE = "";
-
-    /**
-     * The database jdbc url.
-     */
-    private static String JDBC_URL = "";
-
-    /**
-     * The website domain.
-     */
-    public static String DOMAIN = "";
-
-    /**
-     * The JWT secretKey auto initialize.
-     */
-    private static boolean SECRET_KEY_AUTO = true;
-
-    /**
-     * The JWT secretKey.
-     */
-    private static SecretKey SECRET_KEY;
-
-    /**
-     * The amount of time in the future the token will expire.
-     */
-    public static long JWT_EXPIRE_TIME = 604800000L;
-
-    /**
      * Static db module reference.
      */
-    private static DbModule DB_MODULE;
+    private static MongoDbModule DB_MODULE;
 
     /**
      * Static db module reference.
@@ -110,9 +83,9 @@ public class LocalAuth {
     private static SecurityModule SECURITY_MODULE;
 
     /**
-     * Static list of hex characters.
+     * Global application configuration
      */
-    private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes();
+    private static Config CONFIG;
 
     /**
      * Main class for the Local Auth application.
@@ -120,40 +93,10 @@ public class LocalAuth {
      * @param args the program arguments to run with.
      */
     public static void main(@Nonnull final String[] args) {
-        LocalAuth.JDBC_TYPE = System.getenv("JDBC_TYPE");
-        LocalAuth.JDBC_URL = System.getenv("JDBC_URL");
-        LocalAuth.DOMAIN = System.getenv("DOMAIN");
-        final String autoEnvString = System.getenv("SECRET_KEY_AUTO");
-        if (autoEnvString != null) {
-            LocalAuth.SECRET_KEY_AUTO = Boolean.parseBoolean(autoEnvString);
-        }
-        final String secretKeyString = System.getenv("SECRET_KEY");
-        if(LocalAuth.SECRET_KEY_AUTO  || secretKeyString == null) {
-            LocalAuth.SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-        } else {
-            LocalAuth.SECRET_KEY = Keys.hmacShaKeyFor(LocalAuth.hexToBytes(secretKeyString));
-        }
-        final String jwtEnvString = System.getenv("JWT_EXPIRE_TIME");
-        if (jwtEnvString != null) {
-            LocalAuth.JWT_EXPIRE_TIME = Long.parseLong(jwtEnvString);
-        }
-        LocalAuth.objectMapper.enable(SerializationFeature.WRAP_ROOT_VALUE);
-        try {
-            LocalAuth.DB_MODULE = LocalAuth.findDbModule(LocalAuth.JDBC_TYPE);
-        } catch (ClassNotFoundException e) {
-            LOGGER.error("Error loading sq lite driver.", e);
-        }
-        // Create tables
-        LocalAuth.DB_MODULE.createTables();
-        // Check for first time app launch
-        LocalAuth.firstTimeLaunch(LocalAuth.getDbModule());
-        // Setup security modules
-        LocalAuth.SECURITY_MODULE = SecurityDbModule.getInstance();
-        // Set spark port
-        final Javalin javalinApp = Javalin.create(config->{
-            config.addStaticFiles(System.getProperty("user.dir") + "/public", Location.EXTERNAL);
-            config.addSinglePageRoot("/", System.getProperty("user.dir") + "/public/" + "index.html", Location.EXTERNAL);
-        });
+        CONFIG = new Config();
+        LocalAuth.DB_MODULE = MongoDbModule.getInstance();
+        LocalAuth.SECURITY_MODULE = SecurityModule.getInstance();
+        final Javalin javalinApp = Javalin.create();
         // CORS information
         javalinApp.before("*/*", (context)->{
             context.header("Access-Control-Allow-Origin", "*");
@@ -163,83 +106,41 @@ public class LocalAuth {
             context.header("Access-Control-Allow-Credentials", "true");
         });
         // Api v1 pathing group
-        javalinApp.routes(()->ApiBuilder.path("/api/v1", ()->{
-            // Root api path controller
+        javalinApp.routes(()->ApiBuilder.path("/api/v2", ()->{
+            // Authentication
             ApiBuilder.get("/", ApiController::getApiInformation);
-            // Login api controller
-            ApiBuilder.post("/login", LoginController::postLoginUser);
-            // Check to see if a token is valid api controller
-            ApiBuilder.before("/tokenValidity", ApiController::beforeApiAuthentication);
-            ApiBuilder.get("/tokenValidity", TokenValidityController::getTokenValidity);
-            // Get a users admin status api controller
-            ApiBuilder.before("/adminStatus", ApiController::beforeApiAuthentication);
-            ApiBuilder.get("/adminStatus", AdminStatusController::getAdminStatus);
-            // Create new user api controller
-            ApiBuilder.before("/createUser", ApiController::beforeApiAuthentication);
-            ApiBuilder.post("/createUser", CreateUserController::postNewUser);
-            // Edit user info api controller
-            ApiBuilder.before("/editUser", ApiController::beforeApiAuthentication);
-            ApiBuilder.patch("/editUser", EditUserController::patchUser);
-            // List of users api controller
-            ApiBuilder.before("/users", ApiController::beforeApiAuthentication);
-            ApiBuilder.get("/users", UsersController::getUsers);
-            // User info api controller
-            ApiBuilder.before("/user/:username", ApiController::beforeApiAuthentication);
-            ApiBuilder.get("/user/:username", UserController::getUser);
-            // Dash api controller
-            ApiBuilder.before("/dash", ApiController::beforeApiAuthentication);
-            ApiBuilder.get("/dash", DashController::getEndpoints);
+            ApiBuilder.get("/authentication", AuthenticationGetController::getAuthentication);
+            ApiBuilder.post("/authentication", AuthenticationPostController::postAuthentication);
+            // Invites
+            ApiBuilder.get("/invites", InviteGetController::getInvites);
+            ApiBuilder.post("/invites", InvitePostController::postInvite);
+            ApiBuilder.patch("/invites", InvitePatchController::patchInvite);
+            ApiBuilder.delete("/invites/*", InviteDeleteController::deleteInvite);
+            // Users
+            ApiBuilder.get("/users/*", UserGetController::getUsers);
+            ApiBuilder.post("/users", UserPostController::postUser);
+            ApiBuilder.patch("/users", UserPatchController::patchUser);
+            ApiBuilder.delete("/users/*", UserDeleteController::deleteUser);
+            // Nodes
+            ApiBuilder.get("/nodes", NodeGetController::getNodes);
+            ApiBuilder.post("/nodes", NodePostController::postNode);
+            ApiBuilder.patch("/nodes", NodePatchController::patchNode);
+            ApiBuilder.delete("/nodes/*", NodeDeleteController::deleteNode);
+            // Permissions
+            ApiBuilder.get("/permissions", PermissionsGetController::getPermissions);
         }));
 
         javalinApp.start(8080);
-    }
 
-    /**
-     * @param hexString the string to convert.
-     * @return the byte array for a hex string.
-     */
-    private static byte[] hexToBytes(@Nonnull final String hexString) {
-        final int length = hexString.length();
-        final byte[] byteArray = new byte[length / 2];
-        for (int i = 0, j = 0; i < length; i += 2, j++) {
-            byteArray[i / 2] = (byte) ((charToBase16(hexString.charAt(i)) << 4) + charToBase16(hexString.charAt(i + 1)));
-        }
-        return byteArray;
-    }
-
-    /**
-     * Quick converts a valid base 16 character to an int.
-     *
-     * @param c the character to convert.
-     * @return the character as a base 16 number.
-     */
-    private static int charToBase16(final char c) {
-        return c < 58 ? c - 48 : c - 55;
-    }
-
-    private static DbModule findDbModule(@Nonnull final String key) throws ClassNotFoundException {
-        switch (key) {
-            case "mysql":
-                return MySqlModule.getInstance();
-            default:
-                Class.forName("org.sqlite.JDBC");
-                return SqLiteModule.getInstance();
-        }
-    }
-
-    /**
-     * Add admin account if this is the first time running the application.
-     */
-    private static void firstTimeLaunch(@Nonnull final DbModule dbModule) {
-        if (dbModule.getUserList().isEmpty()) {
-            dbModule.createUser("admin", "admin", true, true);
-        }
+        Runtime.getRuntime().addShutdownHook(new Thread(()->{
+            DB_MODULE.close();
+        }));
     }
 
     /**
      * @return the current database module instance.
      */
-    public static DbModule getDbModule() {
+    public static MongoDbModule getDbModule() {
         return DB_MODULE;
     }
 
@@ -250,18 +151,7 @@ public class LocalAuth {
         return SECURITY_MODULE;
     }
 
-    /**
-     * @return the database jdbc url.
-     */
-    public static String getJdbcUrl() {
-        return JDBC_URL;
-    }
-
-    public static SecretKey getSecretKey() {
-        return SECRET_KEY;
-    }
-
-    public static long getJwtExpireTime() {
-        return JWT_EXPIRE_TIME;
+    public static Config getConfig() {
+        return CONFIG;
     }
 }

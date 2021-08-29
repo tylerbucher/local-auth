@@ -9,6 +9,11 @@ Is a forward authentication api and front end service.
 * <jdbc_url> jdbc:mysql://192.168.1.125:3306/local_auth?user=<USERNAME>&password=<PASSWORD>&useSSL=false&allowPublicKeyRetrieval=true
 * <domain> localhost
 
+todo
+etags
+oauth2
+users reset passwords
+
 ## Building
 ```bash
 docker build --no-cache --build-arg SSH_FILE=ssh_private.txt --build-arg HOST='s/$HOST_URL/sub.domain.net/g' -t localauth:localauth .

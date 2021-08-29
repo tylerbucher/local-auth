@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2019 Tyler Bucher
+ * Copyright (c) 2019 - Present, Tyler Bucher
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,17 +27,16 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.io.SegmentedStringWriter;
 import io.javalin.http.Context;
 import io.javalin.http.UnauthorizedResponse;
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
 import net.reallifegames.localauth.LocalAuth;
-import net.reallifegames.localauth.SecurityDbModule;
+import net.reallifegames.localauth.MongoDbModule;
 import net.reallifegames.localauth.SecurityModule;
+import net.reallifegames.localauth.models.UserModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
-import javax.crypto.SecretKey;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Base Api controller, handles initial authentication and api versioning responses.
@@ -54,31 +53,28 @@ public class ApiController {
     /**
      * Global api version response.
      */
-    public static final ApiResponse apiResponse = new ApiResponse("v1");
+    public static final ApiResponse apiResponse = new ApiResponse("v2");
 
     /**
      * Should be called before all secure api end-points.
      *
      * @param context the REST request context to modify.
      */
-    public static void beforeApiAuthentication(@Nonnull final Context context) {
-        beforeApiAuthentication(context, LocalAuth.getSecurityModule());
-    }
-
-    /**
-     * Should be called before all secure api end-points.
-     *
-     * @param context the REST request context to modify.
-     */
-    public static void beforeApiAuthentication(@Nonnull final Context context, @Nonnull final SecurityModule securityModule) {
+    public static UserModel beforeApiAuthentication(@Nonnull final Context context,
+                                                    @Nonnull final MongoDbModule dbModule,
+                                                    @Nonnull final SecurityModule securityModule,
+                                                    @Nonnull final List<Integer> permissions) {
         // Set response type
         context.contentType("application/json");
         // Check if user is authenticated
-        if (!securityModule.isJWSTokenValid(context.cookie("authToken"))) {
+        final String email = securityModule.getJWSEmailClaim(context.cookie("authToken"));
+        final UserModel userModel = dbModule.getUserModelByEmail(email);
+        if (email.equals("") || userModel == null || !userModel.hasPermission(permissions)) {
             context.status(401);
             context.result("Unauthorized");
             throw new UnauthorizedResponse("Unauthorized");
         }
+        return userModel;
     }
 
     /**
@@ -89,8 +85,6 @@ public class ApiController {
      */
     @SuppressWarnings ("Duplicates")
     public static void getApiInformation(@Nonnull final Context context) throws IOException {
-        // Set response status
-        context.status(200);
         // Prep Jackson-JSON
         ApiController.jsonContextResponse(apiResponse, context);
     }
@@ -104,6 +98,7 @@ public class ApiController {
      */
     public static void jsonContextResponse(@Nonnull final Object marshallObject, @Nonnull final Context context) throws IOException {
         context.contentType("application/json");
+        context.status(200);
         // Prep Jackson-JSON
         final SegmentedStringWriter stringWriter = new SegmentedStringWriter(LocalAuth.jsonFactory._getBufferRecycler());
         final JsonGenerator jsonGenerator = LocalAuth.jsonFactory.createGenerator(stringWriter);
@@ -113,23 +108,5 @@ public class ApiController {
         // Return payload
         context.result(stringWriter.getAndClear());
         jsonGenerator.close();
-    }
-
-    /**
-     * Checks if a user is an admin and modifies the context
-     *
-     * @param context        the REST request context to modify if the user is not an admin.
-     * @param securityModule the module instance to use.
-     * @return true if the user is and admin false otherwise.
-     */
-    public static boolean isUserAdminWithWebContext(@Nonnull final Context context, @Nonnull final SecurityModule securityModule) {
-        final String rawCookie = context.cookie("authToken");
-        final String authUsername = securityModule.getJWSUsernameClaim(rawCookie == null ? "" : rawCookie);
-        if (!securityModule.isUserAdmin(authUsername)) {
-            context.status(403);
-            context.result("Forbidden");
-            return false;
-        }
-        return true;
     }
 }
